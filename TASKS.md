@@ -43,12 +43,12 @@ Work on one milestone at a time. Do not mark it complete until acceptance criter
 **Acceptance:** Query results are correct; database failure returns an error, not fake data.
 
 ## Milestone 4 — Natural-language questions
-**Status:** Not started
-- [ ] Call the LLM from the backend.
-- [ ] Supply the selected dataset's real schema.
-- [ ] Generate, validate, and execute read-only SQL.
-- [ ] Return the generated SQL and actual result table.
-- [ ] Handle unknown columns, model failures, and SQL errors honestly.
+**Status:** Complete
+- [x] Call the LLM from the backend.
+- [x] Supply the selected dataset's real schema.
+- [x] Generate, validate, and execute read-only SQL.
+- [x] Return the generated SQL and actual result table.
+- [x] Handle unknown columns, model failures, and SQL errors honestly.
 
 **Acceptance:** Questions return verifiable results on two different datasets. No mocked success fallback.
 

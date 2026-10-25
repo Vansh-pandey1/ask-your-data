@@ -66,3 +66,18 @@ class SchemaResponse(BaseModel):
     file_name: str
     total_rows: int
     columns: List[SchemaColumn]
+
+
+class AskRequest(BaseModel):
+    question: str
+    row_limit: Optional[int] = 100
+
+
+class AskResponse(BaseModel):
+    question: str
+    generated_sql: str
+    columns: List[str]
+    rows: List[Dict[str, Any]]
+    row_count: int
+    correction_attempted: bool = False
+    error: Optional[str] = None

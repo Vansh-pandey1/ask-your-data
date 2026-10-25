@@ -7,9 +7,12 @@ from .schemas import (
     DatasetPreviewResponse,
     QueryRequest,
     QueryResult,
-    SchemaResponse
+    SchemaResponse,
+    AskRequest,
+    AskResponse
 )
 from .db import db_manager
+from .workflow import run_text_to_sql_workflow
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB limit
 
@@ -96,6 +99,18 @@ async def execute_query(req: QueryRequest):
     """
     try:
         return db_manager.execute_query(req.sql, req.row_limit or 100)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/ask", response_model=AskResponse)
+async def ask_question(req: AskRequest):
+    """
+    Translate a natural-language question into SQL via LangGraph + Gemini,
+    validate it, execute it against the active dataset, and return results.
+    """
+    try:
+        return run_text_to_sql_workflow(req.question, req.row_limit or 100)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
