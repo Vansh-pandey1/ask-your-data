@@ -10,6 +10,116 @@ import {
 } from 'recharts';
 import './App.css';
 
+// Lightweight, crisp SVG icons
+function IconDatabase({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  );
+}
+
+function IconUpload({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function IconSparkles({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
+    </svg>
+  );
+}
+
+function IconCode({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function IconTable({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M3 15h18" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+    </svg>
+  );
+}
+
+function IconCopy({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+}
+
+function IconCheck({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function IconRows({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+function IconColumns({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="6" y1="3" x2="6" y2="21" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <line x1="18" y1="3" x2="18" y2="21" />
+    </svg>
+  );
+}
+
+function IconSearch({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function IconAlertTriangle({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [dataset, setDataset] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -20,8 +130,9 @@ export default function App() {
   const [answer, setAnswer] = useState(null);
   const [askError, setAskError] = useState(null);
 
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState('preview');
   const [showSql, setShowSql] = useState(true);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // CSV File Upload Handler
   const handleFileUpload = async (e) => {
@@ -48,7 +159,7 @@ export default function App() {
       }
 
       setDataset(data);
-      setActiveTab('summary');
+      setActiveTab('preview');
     } catch (err) {
       setUploadError(err.message);
       setDataset(null);
@@ -64,6 +175,7 @@ export default function App() {
 
     setAsking(true);
     setAskError(null);
+    setAnswer(null);
 
     try {
       const res = await fetch('/api/ask', {
@@ -92,12 +204,19 @@ export default function App() {
     }
   };
 
+  // Copy SQL to clipboard with feedback
+  const handleCopySql = () => {
+    if (!answer?.generated_sql) return;
+    navigator.clipboard.writeText(answer.generated_sql);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2000);
+  };
+
   // Detect if query results are suitable for a bar chart
   const getChartConfig = (result) => {
     if (!result || !result.rows || result.rows.length === 0 || result.columns.length < 2) {
       return null;
     }
-    // Limit to reasonable number of items for visual clarity
     if (result.rows.length > 25) {
       return null;
     }
@@ -121,36 +240,89 @@ export default function App() {
     return null;
   };
 
+  // Generate dynamic, grounded prompt suggestions from actual dataset schema
+  const getSamplePrompts = (ds) => {
+    if (!ds || !ds.profile || !ds.profile.columns) return [];
+    const cols = ds.profile.columns;
+    const numCol = cols.find(c => c.column_type === 'integer' || c.column_type === 'float');
+    const catCol = cols.find(c => c.column_type === 'string' && c.unique_count > 1 && c.unique_count <= 25);
+
+    const prompts = [];
+    if (catCol && numCol) {
+      prompts.push(`What is the average ${numCol.column_name} by ${catCol.column_name}?`);
+      prompts.push(`Which ${catCol.column_name} has the highest ${numCol.column_name}?`);
+    } else if (numCol) {
+      prompts.push(`What is the maximum and average ${numCol.column_name}?`);
+    }
+    if (cols.length >= 2) {
+      prompts.push(`Show top 5 rows sorted by ${cols[0].column_name}`);
+    }
+    return prompts.slice(0, 3);
+  };
+
+  // Total missing values across all columns
+  const totalNulls = dataset?.profile?.columns?.reduce(
+    (acc, col) => acc + (col.null_count || 0),
+    0
+  ) ?? 0;
+
+  const totalCells = (dataset?.profile?.total_rows || 0) * (dataset?.profile?.total_columns || 1);
+  const nullPercentage = totalCells > 0 ? ((totalNulls / totalCells) * 100).toFixed(1) : 0;
+
   const chartConfig = getChartConfig(answer);
+  const samplePrompts = getSamplePrompts(dataset);
 
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="app-header">
+      <header className="bento-header">
         <div className="header-brand">
-          <div className="logo-badge">SQL</div>
-          <h1>Ask Your Data</h1>
-        </div>
-        {dataset && (
-          <div className="dataset-badge">
-            <span className="dataset-dot"></span>
-            <strong>{dataset.file_name}</strong>
-            <span className="dataset-meta">
-              ({dataset.total_rows} rows &bull; {dataset.total_columns} columns)
-            </span>
+          <div className="brand-icon-wrapper">
+            <IconDatabase size={22} />
           </div>
-        )}
+          <div className="brand-titles">
+            <h1>Ask Your Data</h1>
+            <span className="brand-tagline">AI-Powered SQL Analytics & Dataset Insights</span>
+          </div>
+        </div>
+
+        <div className="header-actions">
+          {dataset ? (
+            <>
+              <div className="dataset-pill">
+                <span className="pulse-dot"></span>
+                <strong>{dataset.file_name}</strong>
+                <span className="dataset-pill-meta">
+                  &bull; {dataset.total_rows.toLocaleString()} rows
+                </span>
+              </div>
+              <label className="btn-secondary">
+                <IconUpload size={14} />
+                Switch Dataset
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  hidden
+                />
+              </label>
+            </>
+          ) : (
+            <div className="dataset-pill">
+              <span style={{ color: 'var(--text-muted)' }}>&bull; No dataset loaded</span>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Main Content */}
-      <main className="app-main">
-        {/* Upload Section */}
-        <section className="card upload-card">
-          <div className="upload-header">
-            <h2>{dataset ? 'Active Dataset' : 'Upload CSV Dataset'}</h2>
-            {dataset && (
-              <label className="btn-secondary file-label">
-                Upload Different CSV
+      <main className="bento-grid-stack">
+        {/* State A: No Dataset Loaded -> Bento Hero Upload */}
+        {!dataset && (
+          <div className="bento-hero-grid">
+            <div className="bento-card bento-upload-hero">
+              <label className="dropzone-container">
                 <input
                   type="file"
                   accept=".csv,text/csv"
@@ -158,127 +330,151 @@ export default function App() {
                   disabled={uploading}
                   hidden
                 />
-              </label>
-            )}
-          </div>
-
-          {!dataset && (
-            <div className="dropzone">
-              <label className="dropzone-label">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileUpload}
-                  disabled={uploading}
-                  hidden
-                />
-                <div className="dropzone-icon">&uarr;</div>
-                <div className="dropzone-text">
-                  <strong>Click to upload</strong> or drag and drop a CSV
+                <div className="dropzone-icon-circle">
+                  <IconUpload size={26} />
                 </div>
-                <div className="dropzone-sub">Max file size: 20MB &bull; Standard CSV format</div>
+                <div className="dropzone-title">Upload your CSV dataset</div>
+                <div className="dropzone-hint">
+                  Drag and drop a file here, or click to browse from your computer
+                </div>
+                <span className="dropzone-badge">Max 20MB &bull; Comma-separated UTF-8</span>
               </label>
-            </div>
-          )}
 
-          {uploading && (
-            <div className="alert alert-info">
-              <span className="spinner"></span> Profiling dataset and ingesting into SQLite...
-            </div>
-          )}
-
-          {uploadError && (
-            <div className="alert alert-error">
-              <strong>Error:</strong> {uploadError}
-            </div>
-          )}
-        </section>
-
-        {/* Dataset Summary & Preview Tabs */}
-        {dataset && (
-          <section className="card">
-            <div className="tabs">
-              <button
-                className={`tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
-                onClick={() => setActiveTab('summary')}
-              >
-                Dataset Summary
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('preview')}
-              >
-                Data Preview (First 5 Rows)
-              </button>
-            </div>
-
-            {activeTab === 'summary' && (
-              <div className="summary-tab">
-                {/* Stat Tiles */}
-                <div className="stat-grid">
-                  <div className="stat-tile">
-                    <div className="stat-label">Total Rows</div>
-                    <div className="stat-value">{dataset.profile.total_rows}</div>
-                  </div>
-                  <div className="stat-tile">
-                    <div className="stat-label">Total Columns</div>
-                    <div className="stat-value">{dataset.profile.total_columns}</div>
-                  </div>
-                  <div className="stat-tile">
-                    <div className="stat-label">Duplicate Rows</div>
-                    <div className="stat-value">{dataset.profile.duplicate_row_count}</div>
+              {uploading && (
+                <div className="bento-alert bento-alert-info">
+                  <span className="spinner"></span>
+                  <div>
+                    <strong>Profiling dataset...</strong> Ingesting into isolated SQLite in-memory engine and computing column statistics.
                   </div>
                 </div>
+              )}
 
-                {/* Column Breakdown Table */}
-                <h3 className="section-title">Column Profiles</h3>
-                <div className="table-responsive">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Column</th>
-                        <th>Type</th>
-                        <th>Nulls (%)</th>
-                        <th>Unique</th>
-                        <th>Statistics / Values</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dataset.profile.columns.map((col) => (
-                        <tr key={col.column_name}>
-                          <td><strong>{col.column_name}</strong></td>
-                          <td><span className="type-tag">{col.column_type}</span></td>
-                          <td>{col.null_count} ({col.null_percentage}%)</td>
-                          <td>{col.unique_count}</td>
-                          <td className="stats-cell">
-                            {col.numeric_stats && (
-                              <span className="stat-detail">
-                                min: {col.numeric_stats.min} &bull; max: {col.numeric_stats.max} &bull; mean: {col.numeric_stats.mean.toFixed(2)} &bull; median: {col.numeric_stats.median}
-                              </span>
-                            )}
-                            {col.date_range && (
-                              <span className="stat-detail">
-                                range: {col.date_range.min_date} to {col.date_range.max_date}
-                              </span>
-                            )}
-                            {col.categorical_stats && (
-                              <span className="stat-detail">
-                                top: {Object.entries(col.categorical_stats).map(([k, v]) => `${k} (${v})`).join(', ')}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {uploadError && (
+                <div className="bento-alert bento-alert-error">
+                  <IconAlertTriangle size={18} />
+                  <div>
+                    <strong>Upload failed:</strong> {uploadError}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bento-card bento-info-hero">
+              <div>
+                <h3 className="bento-card-title">
+                  <IconSparkles size={18} /> How Ask Your Data Works
+                </h3>
+                <div className="info-feature-list">
+                  <div className="info-feature-item">
+                    <span className="info-feature-num">1</span>
+                    <div className="info-feature-text">
+                      <h4>Deterministic Ingestion</h4>
+                      <p>Computes instant schema reflection, types, null rates, and distribution stats without LLM hallucination.</p>
+                    </div>
+                  </div>
+                  <div className="info-feature-item">
+                    <span className="info-feature-num">2</span>
+                    <div className="info-feature-text">
+                      <h4>LangGraph + Gemini Agent</h4>
+                      <p>Evaluates answerability, translates natural language to read-only SQL, and validates column names via AST.</p>
+                    </div>
+                  </div>
+                  <div className="info-feature-item">
+                    <span className="info-feature-num">3</span>
+                    <div className="info-feature-text">
+                      <h4>Grounded AI Insights</h4>
+                      <p>Inspects executed SQL rows directly to synthesize concise, factually accurate explanations.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {activeTab === 'preview' && (
-              <div className="preview-tab">
+              <div className="info-security-pill">
+                <IconCode size={16} /> Read-only analytical SQL &bull; In-memory isolation &bull; No mock data
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* State B: Dataset Loaded */}
+        {dataset && (
+          <>
+            {/* 1. Bento Overview KPI Cards */}
+            <section className="bento-stat-grid">
+              <div className="bento-stat-card">
+                <div className="stat-icon-wrapper stat-icon-blue">
+                  <IconRows size={22} />
+                </div>
+                <div className="stat-content">
+                  <span className="bento-stat-label">Total Rows</span>
+                  <span className="bento-stat-value">
+                    {dataset.profile.total_rows.toLocaleString()}
+                  </span>
+                  <span className="bento-stat-hint">Ingested records</span>
+                </div>
+              </div>
+
+              <div className="bento-stat-card">
+                <div className="stat-icon-wrapper stat-icon-indigo">
+                  <IconColumns size={22} />
+                </div>
+                <div className="stat-content">
+                  <span className="bento-stat-label">Total Columns</span>
+                  <span className="bento-stat-value">{dataset.profile.total_columns}</span>
+                  <span className="bento-stat-hint">Structured schema fields</span>
+                </div>
+              </div>
+
+              <div className="bento-stat-card">
+                <div className="stat-icon-wrapper stat-icon-amber">
+                  <IconTable size={22} />
+                </div>
+                <div className="stat-content">
+                  <span className="bento-stat-label">Missing Values</span>
+                  <span className="bento-stat-value">
+                    {totalNulls.toLocaleString()}
+                  </span>
+                  <span className="bento-stat-hint">{nullPercentage}% of total cells</span>
+                </div>
+              </div>
+
+              <div className="bento-stat-card">
+                <div className="stat-icon-wrapper stat-icon-slate">
+                  <IconCopy size={22} />
+                </div>
+                <div className="stat-content">
+                  <span className="bento-stat-label">Duplicates</span>
+                  <span className="bento-stat-value">{dataset.profile.duplicate_row_count}</span>
+                  <span className="bento-stat-hint">Identical record rows</span>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. Bento Dataset Explorer (Preview & Profiles) */}
+            <section className="bento-card">
+              <div className="bento-card-header">
+                <h2 className="bento-card-title">
+                  <IconTable size={18} /> Dataset Explorer
+                </h2>
+                <div className="bento-tabs">
+                  <button
+                    className={`bento-tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('preview')}
+                  >
+                    Data Preview <span className="tab-badge">5 rows</span>
+                  </button>
+                  <button
+                    className={`bento-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('summary')}
+                  >
+                    Column Profiles <span className="tab-badge">{dataset.profile.total_columns}</span>
+                  </button>
+                </div>
+              </div>
+
+              {activeTab === 'preview' && (
                 <div className="table-responsive">
-                  <table className="data-table">
+                  <table className="bento-table">
                     <thead>
                       <tr>
                         {dataset.column_names.map((col) => (
@@ -290,10 +486,12 @@ export default function App() {
                       {dataset.preview_rows.map((row, idx) => (
                         <tr key={idx}>
                           {dataset.column_names.map((col) => (
-                            <td key={col}>
-                              {row[col] !== null && row[col] !== undefined
-                                ? String(row[col])
-                                : <span className="null-val">null</span>}
+                            <td key={col} className={typeof row[col] === 'number' ? 'numeric-cell' : ''}>
+                              {row[col] !== null && row[col] !== undefined ? (
+                                String(row[col])
+                              ) : (
+                                <span className="null-pill">null</span>
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -301,113 +499,238 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+              )}
+
+              {activeTab === 'summary' && (
+                <div className="table-responsive">
+                  <table className="bento-table">
+                    <thead>
+                      <tr>
+                        <th>Column</th>
+                        <th>Inferred Type</th>
+                        <th>Nulls (%)</th>
+                        <th>Unique</th>
+                        <th>Computed Distribution / Summary</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dataset.profile.columns.map((col) => (
+                        <tr key={col.column_name}>
+                          <td><strong>{col.column_name}</strong></td>
+                          <td><span className="type-pill">{col.column_type}</span></td>
+                          <td>{col.null_count} ({col.null_percentage}%)</td>
+                          <td>{col.unique_count.toLocaleString()}</td>
+                          <td className="stats-detail-text">
+                            {col.numeric_stats && (
+                              <span>
+                                min: {col.numeric_stats.min} &bull; max: {col.numeric_stats.max} &bull; mean: {col.numeric_stats.mean.toFixed(2)} &bull; median: {col.numeric_stats.median}
+                              </span>
+                            )}
+                            {col.date_range && (
+                              <span>
+                                span: {col.date_range.min_date} to {col.date_range.max_date}
+                              </span>
+                            )}
+                            {col.categorical_stats && (
+                              <span>
+                                frequent: {Object.entries(col.categorical_stats).map(([k, v]) => `${k} (${v})`).join(', ')}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* 3. Ask Question Console */}
+            <section className="bento-card query-card">
+              <div className="bento-card-header">
+                <h2 className="bento-card-title">
+                  <IconSparkles size={18} /> Ask Your Data in Natural Language
+                </h2>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  LangGraph Agent &bull; SQLite Engine
+                </span>
               </div>
-            )}
-          </section>
-        )}
 
-        {/* Natural Language Question Section */}
-        {dataset && (
-          <section className="card">
-            <h2 className="section-title">Ask a Question in Natural Language</h2>
-            <form onSubmit={handleAsk} className="question-form">
-              <input
-                type="text"
-                className="input-field"
-                placeholder="e.g. What is the total sales for each product, sorted highest to lowest?"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                disabled={asking}
-              />
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={asking || !question.trim()}
-              >
-                {asking ? 'Generating SQL...' : 'Ask Data'}
-              </button>
-            </form>
+              <form onSubmit={handleAsk} className="query-form">
+                <div className="query-input-wrapper">
+                  <span className="query-input-icon">
+                    <IconSearch size={18} />
+                  </span>
+                  <input
+                    type="text"
+                    className="query-input"
+                    placeholder="Ask any question about your data (e.g. Which category has the highest average value?)"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={asking}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={asking || !question.trim()}
+                >
+                  {asking ? (
+                    <>
+                      <span className="spinner"></span> Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <IconSparkles size={16} /> Analyze
+                    </>
+                  )}
+                </button>
+              </form>
 
-            {asking && (
-              <div className="alert alert-info">
-                <span className="spinner"></span> LangGraph is generating SQL, validating read-only AST, and querying SQLite...
-              </div>
-            )}
+              {/* Dynamic Sample Question Chips */}
+              {samplePrompts.length > 0 && (
+                <div className="prompt-suggestions">
+                  <span className="suggestions-label">Suggestions:</span>
+                  {samplePrompts.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="prompt-chip"
+                      onClick={() => setQuestion(p)}
+                      disabled={asking}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            {askError && (
-              <div className="alert alert-error">
-                <strong>Query Error:</strong> {askError}
-              </div>
-            )}
+              {/* Progress & Error Feedback */}
+              {asking && (
+                <div className="bento-alert bento-alert-info">
+                  <span className="spinner"></span>
+                  <div>
+                    <strong>Query in progress:</strong> LangGraph is verifying schema columns, generating read-only SQLite syntax, and fetching execution rows...
+                  </div>
+                </div>
+              )}
 
-            {/* Answer Display */}
+              {askError && (
+                <div className="bento-alert bento-alert-error">
+                  <IconAlertTriangle size={18} />
+                  <div>
+                    <strong>Query error:</strong> {askError}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* 4. Results Workspace */}
             {answer && !answer.answerable && (
-              <div className="alert alert-warning">
-                <strong>Cannot Answer: </strong>
-                {answer.explanation || answer.error}
+              <div className="bento-card">
+                <div className="bento-alert bento-alert-warning" style={{ margin: 0 }}>
+                  <IconAlertTriangle size={20} />
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '4px' }}>Cannot Answer Question with Available Columns</strong>
+                    {answer.explanation || answer.error}
+                  </div>
+                </div>
               </div>
             )}
 
             {answer && answer.answerable && (
-              <div className="answer-section">
-                {/* AI Insight Card */}
+              <section className="bento-card results-workspace">
+                {/* A. AI Insight */}
                 {answer.insight && (
-                  <div className="insight-card alert alert-info">
-                    <strong>AI Insight:</strong> {answer.insight}
+                  <div className="bento-insight-card">
+                    <div className="insight-header">
+                      <span className="insight-badge">
+                        <IconSparkles size={12} /> AI Insight
+                      </span>
+                      <span className="insight-title">Grounded Natural-Language Explanation</span>
+                    </div>
+                    <p className="insight-text">{answer.insight}</p>
                   </div>
                 )}
 
-                {/* Generated SQL Accordion */}
-                <div className="sql-box">
-                  <div
-                    className="sql-box-header"
-                    onClick={() => setShowSql(!showSql)}
-                  >
-                    <span>
-                      <strong>Executed SQL:</strong> {showSql ? '▼' : '▶'}
-                    </span>
-                    {answer.correction_attempted && (
-                      <span className="badge badge-warning">Auto-corrected (1 retry)</span>
-                    )}
+                {/* B. Executed SQL Accordion */}
+                <div className="bento-sql-box">
+                  <div className="bento-sql-header">
+                    <div
+                      className="sql-header-left"
+                      onClick={() => setShowSql(!showSql)}
+                    >
+                      <IconCode size={16} />
+                      <span>Executed SQL Query</span>
+                      <span className="sql-tag-read">READ-ONLY SELECT</span>
+                      {answer.correction_attempted && (
+                        <span className="sql-tag-retry">Auto-corrected (1 retry)</span>
+                      )}
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        {showSql ? '▲ collapse' : '▼ expand'}
+                      </span>
+                    </div>
+                    <div className="sql-header-right">
+                      <button
+                        type="button"
+                        className="btn-sql-copy"
+                        onClick={handleCopySql}
+                      >
+                        {copiedSql ? (
+                          <>
+                            <IconCheck size={12} /> Copied!
+                          </>
+                        ) : (
+                          <>
+                            <IconCopy size={12} /> Copy SQL
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   {showSql && (
-                    <pre className="sql-code">
+                    <pre className="bento-sql-code">
                       <code>{answer.generated_sql}</code>
                     </pre>
                   )}
                 </div>
 
-                {/* Optional Chart */}
+                {/* C. Optional Chart */}
                 {chartConfig && (
-                  <div className="chart-container">
-                    <h3 className="section-title">
-                      Visualization: {chartConfig.yKey} by {chartConfig.xKey}
-                    </h3>
+                  <div className="bento-chart-card">
+                    <div className="results-header-bar">
+                      <h3 className="bento-card-title">
+                        Visualization: {chartConfig.yKey} by {chartConfig.xKey}
+                      </h3>
+                      <span className="results-count-badge">Bar Chart</span>
+                    </div>
                     <div style={{ width: '100%', height: 320 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={answer.rows}
                           margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                           <XAxis
                             dataKey={chartConfig.xKey}
-                            tick={{ fontSize: 12, fill: '#4b5563' }}
+                            tick={{ fontSize: 12, fill: '#64748b' }}
                             angle={-20}
                             textAnchor="end"
                           />
-                          <YAxis tick={{ fontSize: 12, fill: '#4b5563' }} />
+                          <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
                           <Tooltip
                             contentStyle={{
-                              borderRadius: '6px',
-                              border: '1px solid #e5e7eb',
-                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                              borderRadius: '8px',
+                              border: '1px solid #e2e8f0',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
+                              backgroundColor: '#ffffff',
+                              color: '#0f172a'
                             }}
                           />
                           <Bar
                             dataKey={chartConfig.yKey}
                             fill="#2563eb"
-                            radius={[4, 4, 0, 0]}
+                            radius={[6, 6, 0, 0]}
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -415,16 +738,24 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Result Table */}
-                <div className="results-container">
-                  <h3 className="section-title">
-                    Result Table ({answer.row_count} {answer.row_count === 1 ? 'row' : 'rows'})
-                  </h3>
+                {/* D. Query Results Table */}
+                <div className="bento-table-container">
+                  <div className="results-header-bar">
+                    <h3 className="bento-card-title">
+                      <IconTable size={16} /> Query Results
+                    </h3>
+                    <span className="results-count-badge">
+                      {answer.row_count} {answer.row_count === 1 ? 'row' : 'rows'} returned
+                    </span>
+                  </div>
+
                   {answer.rows.length === 0 ? (
-                    <div className="empty-results">No rows matched this query.</div>
+                    <div className="empty-results-box">
+                      No matching records were found in the dataset for this query.
+                    </div>
                   ) : (
                     <div className="table-responsive">
-                      <table className="data-table">
+                      <table className="bento-table">
                         <thead>
                           <tr>
                             {answer.columns.map((col) => (
@@ -436,10 +767,15 @@ export default function App() {
                           {answer.rows.map((row, idx) => (
                             <tr key={idx}>
                               {answer.columns.map((col) => (
-                                <td key={col}>
-                                  {row[col] !== null && row[col] !== undefined
-                                    ? String(row[col])
-                                    : <span className="null-val">null</span>}
+                                <td
+                                  key={col}
+                                  className={typeof row[col] === 'number' ? 'numeric-cell' : ''}
+                                >
+                                  {row[col] !== null && row[col] !== undefined ? (
+                                    typeof row[col] === 'number' ? row[col].toLocaleString() : String(row[col])
+                                  ) : (
+                                    <span className="null-pill">null</span>
+                                  )}
                                 </td>
                               ))}
                             </tr>
@@ -449,9 +785,9 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
             )}
-          </section>
+          </>
         )}
       </main>
     </div>
