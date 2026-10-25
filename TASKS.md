@@ -53,10 +53,10 @@ Work on one milestone at a time. Do not mark it complete until acceptance criter
 **Acceptance:** Questions return verifiable results on two different datasets. No mocked success fallback.
 
 ## Milestone 5 — Simple chart (optional)
-**Status:** Not started
-- [ ] Add one or two chart types, such as bar and line.
-- [ ] Render only from real query result rows.
-- [ ] Keep the result table available.
+**Status:** Complete
+- [x] Add one or two chart types, such as bar and line.
+- [x] Render only from real query result rows.
+- [x] Keep the result table available.
 
 **Acceptance:** Chart values match the returned result rows; unsuitable results show no misleading chart.
 
