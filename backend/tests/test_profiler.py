@@ -102,3 +102,50 @@ def test_profile_header_only_csv_raises_error():
     """CSV with header but 0 data rows must raise ValueError."""
     with pytest.raises(ValueError, match="CSV file has no data rows"):
         profile_csv(b"col1,col2,col3\n", "header_only.csv")
+
+
+def test_profile_standard_utf8_csv():
+    """Standard UTF-8 encoded CSV parses accurately with non-ASCII characters."""
+    csv_bytes = "name,city,score\nRenée,Montréal,95\nJohn,New York,88\n".encode("utf-8")
+    profile = profile_csv(csv_bytes, "utf8_test.csv")
+
+    assert profile.total_rows == 2
+    assert profile.total_columns == 3
+    col_names = [c.column_name for c in profile.columns]
+    assert col_names == ["name", "city", "score"]
+
+
+def test_profile_utf8_bom_csv():
+    """CSV with UTF-8 BOM (\xef\xbb\xbf) strips BOM from column names and parses cleanly."""
+    csv_bytes = "﻿product,category,price\nWidget A,Hardware,19.99\nWidget B,Software,29.99\n".encode("utf-8-sig")
+    profile = profile_csv(csv_bytes, "bom_test.csv")
+
+    assert profile.total_rows == 2
+    assert profile.total_columns == 3
+    col_names = [c.column_name for c in profile.columns]
+    # BOM must not be attached to the first column name
+    assert col_names == ["product", "category", "price"]
+    assert "﻿" not in col_names[0]
+
+
+def test_profile_windows_1252_csv_with_special_characters():
+    """
+    Windows-1252 encoded CSV containing characters like 'é' (0xE9) and curly quote '’' (0x92)
+    decodes correctly without throwing UnicodeDecodeError or discarding bytes.
+    """
+    # In Windows-1252: 'é' is 0xE9, '’' is 0x92.
+    # In strict UTF-8, 0x92 is an invalid continuation byte.
+    csv_text = "id,author,quote\n1,René,It’s a great day\n2,Aimée,Let’s celebrate\n"
+    csv_bytes = csv_text.encode("cp1252")
+
+    profile = profile_csv(csv_bytes, "quotes_cp1252.csv")
+    assert profile.total_rows == 2
+    assert profile.total_columns == 3
+    col_names = [c.column_name for c in profile.columns]
+    assert col_names == ["id", "author", "quote"]
+
+    author_col = next(c for c in profile.columns if c.column_name == "author")
+    assert author_col.unique_count == 2
+    assert "René" in author_col.categorical_stats
+    assert "Aimée" in author_col.categorical_stats
+

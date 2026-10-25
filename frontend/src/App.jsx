@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -6,9 +6,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip
+  Tooltip,
+  Legend,
+  Cell
 } from 'recharts';
 import './App.css';
+
+// Chart color palette - accessible, distinct colors for grouped series
+const CHART_COLORS = ['#2563eb', '#1d4ed8', '#0844c7', '#065f99', '#047857', '#065f46', '#055734', '#04582c', '#044b26', '#034220'];
 
 // Lightweight, crisp SVG icons
 function IconDatabase({ size = 20 }) {
@@ -120,6 +125,40 @@ function IconAlertTriangle({ size = 18 }) {
   );
 }
 
+function IconSun({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function IconMoon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function IconMonitor({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [dataset, setDataset] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -133,6 +172,61 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('preview');
   const [showSql, setShowSql] = useState(true);
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // Theme management
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem('askYourData-theme');
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    return 'system';
+  });
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef(null);
+
+  // Track system dark mode dynamically
+  const [systemIsDark, setSystemIsDark] = useState(() => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => setSystemIsDark(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  // Close theme menu on outside click or escape
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(e.target)) {
+        setThemeMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setThemeMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Persist and apply theme change
+  useEffect(() => {
+    const html = document.documentElement;
+    if (theme === 'system') {
+      localStorage.removeItem('askYourData-theme');
+      html.setAttribute('data-theme', systemIsDark ? 'dark' : 'light');
+    } else {
+      localStorage.setItem('askYourData-theme', theme);
+      html.setAttribute('data-theme', theme);
+    }
+  }, [theme, systemIsDark]);
+
+  // Derived active theme for charts and icons: 'light' or 'dark'
+  const activeTheme = theme === 'system' ? (systemIsDark ? 'dark' : 'light') : theme;
+  const isDark = activeTheme === 'dark';
 
   // CSV File Upload Handler
   const handleFileUpload = async (e) => {
@@ -212,31 +306,127 @@ export default function App() {
     setTimeout(() => setCopiedSql(false), 2000);
   };
 
-  // Detect if query results are suitable for a bar chart
+  // Smart chart data transformer: detects chart type and pivots data for Recharts
   const getChartConfig = (result) => {
     if (!result || !result.rows || result.rows.length === 0 || result.columns.length < 2) {
       return null;
     }
-    if (result.rows.length > 25) {
+    if (result.rows.length > 50) {
       return null;
     }
 
     const firstRow = result.rows[0];
-    let catKey = null;
-    let numKey = null;
+    const columns = result.columns;
 
-    for (const col of result.columns) {
-      const val = firstRow[col];
-      if (typeof val === 'number' && !numKey) {
-        numKey = col;
-      } else if ((typeof val === 'string' || typeof val === 'boolean') && !catKey) {
-        catKey = col;
+    // Classify columns by type from first row
+    const numericCols = columns.filter(col => typeof firstRow[col] === 'number');
+    const categoricalCols = columns.filter(col => typeof firstRow[col] === 'string' || typeof firstRow[col] === 'boolean');
+
+    // Heuristic: Identify the "measure" column (what to visualize)
+    // Priority: columns named count/total/sum/avg/average/max/min > columns with high cardinality > first numeric
+    const measureKeywords = ['count', 'total', 'sum', 'avg', 'average', 'max', 'min', 'mean', 'median', 'value'];
+    let measureCol = null;
+    for (const kw of measureKeywords) {
+      const found = numericCols.find(c => c.toLowerCase().includes(kw));
+      if (found) {
+        measureCol = found;
+        break;
       }
     }
-
-    if (catKey && numKey) {
-      return { xKey: catKey, yKey: numKey };
+    // If no keyword match, prefer numeric with high cardinality (many unique values)
+    if (!measureCol && numericCols.length > 1) {
+      const cardinality = numericCols.map(col => ({
+        col,
+        unique: new Set(result.rows.map(r => r[col])).size
+      })).sort((a, b) => b.unique - a.unique);
+      measureCol = cardinality[0].col;
     }
+    // Fallback: first numeric
+    if (!measureCol) measureCol = numericCols[0];
+
+    // Numeric columns with low cardinality (0/1, 1-5, etc.) are likely coded categories
+    const lowCardinalityThreshold = 10;
+    const codedCategoricalCols = numericCols.filter(col => {
+      const uniqueVals = new Set(result.rows.map(r => r[col])).size;
+      return uniqueVals <= lowCardinalityThreshold && col !== measureCol;
+    });
+
+    // Combine explicit categorical + coded categorical
+    const allCategoricalCols = [...categoricalCols, ...codedCategoricalCols];
+
+    // Need at least 1 categorical and 1 numeric (measure)
+    if (allCategoricalCols.length === 0 || numericCols.length === 0) {
+      return null;
+    }
+
+    // Case 1: Two+ categorical columns + measure = Grouped Bar Chart
+    // e.g., geography, exited, count
+    if (allCategoricalCols.length >= 2 && numericCols.length >= 1) {
+      const cat1 = allCategoricalCols[0]; // X-axis category
+      const cat2 = allCategoricalCols[1]; // Series/grouping dimension
+      const numCol = measureCol;           // Value
+
+      // Get unique categories and series in order of appearance
+      const categories = [...new Set(result.rows.map(r => r[cat1]))];
+      const seriesValues = [...new Set(result.rows.map(r => r[cat2]))];
+
+      // Pivot data: each row = one category, with a property for each series value
+      const chartData = categories.map(cat => {
+        const row = { [cat1]: cat };
+        seriesValues.forEach(sv => {
+          const match = result.rows.find(r => r[cat1] === cat && r[cat2] === sv);
+          row[String(sv)] = match ? match[numCol] : 0;
+        });
+        return row;
+      });
+
+      return {
+        type: 'grouped',
+        data: chartData,
+        xKey: cat1,
+        yKey: numCol,
+        seriesKey: cat2,
+        seriesValues,
+        categories,
+        chartTitle: `${numCol} by ${cat1} and ${cat2}`
+      };
+    }
+
+    // Case 2: One categorical + measure = Simple Bar Chart
+    // e.g., product, total_sales
+    if (allCategoricalCols.length === 1 && numericCols.length >= 1) {
+      const catKey = allCategoricalCols[0];
+      const numKey = measureCol;
+
+      // Limit categories for readability
+      const uniqueCats = [...new Set(result.rows.map(r => r[catKey]))];
+      if (uniqueCats.length > 30) return null;
+
+      return {
+        type: 'simple',
+        data: result.rows,
+        xKey: catKey,
+        yKey: numKey,
+        chartTitle: `${numKey} by ${catKey}`
+      };
+    }
+
+    // Case 3: Multiple numeric columns with one categorical = Multi-series Bar Chart
+    // e.g., product, sales_q1, sales_q2, sales_q3
+    if (categoricalCols.length === 1 && numericCols.length >= 2) {
+      const catKey = categoricalCols[0];
+      const uniqueCats = [...new Set(result.rows.map(r => r[catKey]))];
+      if (uniqueCats.length > 30) return null;
+
+      return {
+        type: 'multi-series',
+        data: result.rows,
+        xKey: catKey,
+        yKeys: numericCols,
+        chartTitle: `${numericCols.join(', ')} by ${catKey}`
+      };
+    }
+
     return null;
   };
 
@@ -313,6 +503,112 @@ export default function App() {
               <span style={{ color: 'var(--text-muted)' }}>&bull; No dataset loaded</span>
             </div>
           )}
+
+          {/* Theme Selector - Compact Icon Button with Dropdown */}
+          <div className="theme-selector" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            <button
+              type="button"
+              className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+              onClick={() => setThemeMenuOpen(prev => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={themeMenuOpen}
+              aria-label="Change appearance"
+              title="Change appearance"
+            >
+              {theme === 'light' ? <IconSun size={15} /> : theme === 'dark' ? <IconMoon size={15} /> : <IconMonitor size={15} />}
+              <span className="theme-toggle-label" style={{ textTransform: 'capitalize' }}>{theme}</span>
+            </button>
+
+            <div
+              className={`theme-dropdown-menu ${themeMenuOpen ? 'open' : ''}`}
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-md)',
+                minWidth: '150px',
+                padding: '6px 0',
+                display: themeMenuOpen ? 'block' : 'none',
+                zIndex: 1000
+              }}
+              aria-labelledby="theme-toggle-btn"
+            >
+              <button
+                type="button"
+                className="theme-dropdown-item"
+                onClick={() => {
+                  setTheme('light');
+                  setThemeMenuOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 14px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border-hover)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                <IconSun size={14} /> Light
+              </button>
+              <button
+                type="button"
+                className="theme-dropdown-item"
+                onClick={() => {
+                  setTheme('dark');
+                  setThemeMenuOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 14px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border-hover)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                <IconMoon size={14} /> Dark
+              </button>
+              <button
+                type="button"
+                className="theme-dropdown-item"
+                onClick={() => {
+                  setTheme('system');
+                  setThemeMenuOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 14px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                <IconMonitor size={14} /> System
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -699,39 +995,81 @@ export default function App() {
                 {chartConfig && (
                   <div className="bento-chart-card">
                     <div className="results-header-bar">
-                      <h3 className="bento-card-title">
-                        Visualization: {chartConfig.yKey} by {chartConfig.xKey}
-                      </h3>
-                      <span className="results-count-badge">Bar Chart</span>
+                      <h3 className="bento-card-title">{chartConfig.chartTitle}</h3>
+                      <span className="results-count-badge">
+                        {chartConfig.type === 'grouped' ? 'Grouped Bar Chart' : chartConfig.type === 'multi-series' ? 'Multi-Series Bar Chart' : 'Bar Chart'}
+                      </span>
                     </div>
                     <div style={{ width: '100%', height: 320 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
-                          data={answer.rows}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                          data={chartConfig.data}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                          layout="vertical"
                         >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#263449' : '#e2e8f0'} />
                           <XAxis
-                            dataKey={chartConfig.xKey}
-                            tick={{ fontSize: 12, fill: '#64748b' }}
-                            angle={-20}
-                            textAnchor="end"
+                            type="number"
+                            tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }}
+                            tickFormatter={val => val.toLocaleString()}
+                            stroke={isDark ? '#263449' : '#e2e8f0'}
                           />
-                          <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                          <YAxis
+                            type="category"
+                            dataKey={chartConfig.xKey}
+                            tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }}
+                            stroke={isDark ? '#263449' : '#e2e8f0'}
+                            width={120}
+                            interval={0}
+                          />
                           <Tooltip
                             contentStyle={{
                               borderRadius: '8px',
-                              border: '1px solid #e2e8f0',
+                              border: `1px solid ${isDark ? '#263449' : '#e2e8f0'}`,
                               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
-                              backgroundColor: '#ffffff',
-                              color: '#0f172a'
+                              backgroundColor: isDark ? '#151e30' : '#ffffff',
+                              color: isDark ? '#f8fafc' : '#0f172a'
                             }}
+                            formatter={(value, name) => [value.toLocaleString(), name]}
                           />
-                          <Bar
-                            dataKey={chartConfig.yKey}
-                            fill="#2563eb"
-                            radius={[6, 6, 0, 0]}
+                          <Legend
+                            layout="horizontal"
+                            align="center"
+                            verticalAlign="top"
+                            height={36}
+                            iconType="square"
+                            iconSize={12}
+                            wrapperStyle={{ paddingTop: 8 }}
                           />
+                          {chartConfig.type === 'grouped' && chartConfig.seriesValues.map((sv, idx) => (
+                            <Bar
+                              key={sv}
+                              dataKey={String(sv)}
+                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                              radius={[0, 6, 6, 0]}
+                              name={String(sv)}
+                              minPointSize={4}
+                            />
+                          ))}
+                          {chartConfig.type === 'simple' && (
+                            <Bar
+                              dataKey={chartConfig.yKey}
+                              fill="#2563eb"
+                              radius={[0, 6, 6, 0]}
+                              name={chartConfig.yKey}
+                              minPointSize={4}
+                            />
+                          )}
+                          {chartConfig.type === 'multi-series' && chartConfig.yKeys.map((key, idx) => (
+                            <Bar
+                              key={key}
+                              dataKey={key}
+                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                              radius={[0, 6, 6, 0]}
+                              name={key}
+                              minPointSize={4}
+                            />
+                          ))}
                         </BarChart>
                       </ResponsiveContainer>
                     </div>

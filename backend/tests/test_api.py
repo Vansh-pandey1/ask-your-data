@@ -98,3 +98,56 @@ def test_api_profile_header_only_csv_400():
     response = client.post("/api/profile", files={"file": ("header.csv", b"a,b,c\n", "text/csv")})
     assert response.status_code == 400
     assert "no data rows" in response.json()["detail"].lower()
+
+
+def test_api_upload_windows_1252_csv_and_query():
+    """
+    Upload a Windows-1252 encoded CSV with non-ASCII characters ('é' and '’').
+    Verify it ingests successfully and can be queried via /api/query.
+    """
+    csv_text = "id,name,role,description\n1,René,Manager,Customer’s account\n2,Aimée,Analyst,Company’s data\n"
+    csv_bytes = csv_text.encode("cp1252")
+
+    # Upload
+    upload_resp = client.post("/api/upload", files={"file": ("users_cp1252.csv", csv_bytes, "text/csv")})
+    assert upload_resp.status_code == 200
+    upload_data = upload_resp.json()
+    assert upload_data["total_rows"] == 2
+    assert upload_data["preview_rows"][0]["name"] == "René"
+    assert upload_data["preview_rows"][0]["description"] == "Customer’s account"
+
+    # Query loaded dataset
+    query_resp = client.post("/api/query", json={"sql": "SELECT name, description FROM dataset WHERE id = 1"})
+    assert query_resp.status_code == 200
+    query_data = query_resp.json()
+    assert query_data["row_count"] == 1
+    assert query_data["rows"][0]["name"] == "René"
+    assert query_data["rows"][0]["description"] == "Customer’s account"
+
+
+def test_api_upload_utf8_bom_csv_and_query():
+    """
+    Upload a UTF-8 with BOM CSV.
+    Verify BOM is stripped from columns and data queries cleanly.
+    """
+    csv_text = "﻿id,title,value\n10,Café,150.00\n20,Théâtre,250.00\n"
+    csv_bytes = csv_text.encode("utf-8-sig")
+
+    upload_resp = client.post("/api/upload", files={"file": ("bom_data.csv", csv_bytes, "text/csv")})
+    assert upload_resp.status_code == 200
+    upload_data = upload_resp.json()
+    assert upload_data["column_names"] == ["id", "title", "value"]
+
+    query_resp = client.post("/api/query", json={"sql": "SELECT title, value FROM dataset WHERE id = 10"})
+    assert query_resp.status_code == 200
+    assert query_resp.json()["rows"][0]["title"] == "Café"
+    assert query_resp.json()["rows"][0]["value"] == 150.00
+
+
+def test_api_upload_malformed_corrupt_csv_400():
+    """Upload binary or corrupt CSV data returns HTTP 400 with a clear error message."""
+    corrupt_bytes = b"\x00\x01\x02\x03\x04\xff\xfe"
+    upload_resp = client.post("/api/upload", files={"file": ("corrupt.bin", corrupt_bytes, "text/csv")})
+    assert upload_resp.status_code == 400
+    assert "csv parsing error" in upload_resp.json()["detail"].lower()
+

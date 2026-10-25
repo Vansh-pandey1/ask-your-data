@@ -5,20 +5,64 @@ from .schemas import ColumnSummary, DatasetProfile, ColumnType, DatasetPreviewRe
 
 
 def load_dataframe_from_bytes(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase]) -> pd.DataFrame:
-    """Helper to parse CSV data into a validated pandas DataFrame."""
-    if isinstance(file_bytes_or_stream, bytes):
+    """
+    Helper to parse CSV data into a validated pandas DataFrame.
+    Supports common encodings in a controlled order:
+    1. UTF-8 (or UTF-8-sig if BOM is present)
+    2. UTF-8-sig
+    3. Windows-1252 (cp1252)
+    4. ISO-8859-1 (latin-1) as fallback
+    Strict decoding without discarding invalid bytes.
+    """
+    if isinstance(file_bytes_or_stream, str):
+        raw_bytes = None
+        decoded_text = file_bytes_or_stream
+    elif isinstance(file_bytes_or_stream, bytes):
         raw_bytes = file_bytes_or_stream
+        decoded_text = None
     elif hasattr(file_bytes_or_stream, 'read'):
         content = file_bytes_or_stream.read()
-        raw_bytes = content.encode('utf-8') if isinstance(content, str) else content
+        if isinstance(content, str):
+            raw_bytes = None
+            decoded_text = content
+        else:
+            raw_bytes = content
+            decoded_text = None
     else:
         raise ValueError("Invalid file input type")
 
-    if not raw_bytes or len(raw_bytes.strip()) == 0:
+    if raw_bytes is not None:
+        if not raw_bytes or len(raw_bytes.strip()) == 0:
+            raise ValueError("CSV file is empty")
+        if b"\x00" in raw_bytes:
+            raise ValueError("CSV parsing error: file contains null bytes (binary or corrupt file)")
+
+        # Controlled encoding order: prefer UTF-8, then Windows-1252, then ISO-8859-1 fallback
+        encodings = (
+            ("utf-8-sig", "utf-8", "cp1252", "latin-1")
+            if raw_bytes.startswith(b"\xef\xbb\xbf")
+            else ("utf-8", "utf-8-sig", "cp1252", "latin-1")
+        )
+
+        decode_error = None
+        for enc in encodings:
+            try:
+                decoded_text = raw_bytes.decode(enc)
+                break
+            except UnicodeDecodeError as e:
+                decode_error = e
+                continue
+
+        if decoded_text is None:
+            raise ValueError(
+                f"CSV parsing error: Could not decode file with supported encodings (UTF-8, UTF-8-sig, Windows-1252, ISO-8859-1). {decode_error}"
+            )
+
+    if not decoded_text or len(decoded_text.strip()) == 0:
         raise ValueError("CSV file is empty")
 
     try:
-        df = pd.read_csv(io.BytesIO(raw_bytes))
+        df = pd.read_csv(io.StringIO(decoded_text))
     except pd.errors.EmptyDataError:
         raise ValueError("CSV file is empty")
     except Exception as e:
