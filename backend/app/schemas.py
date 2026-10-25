@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from enum import Enum
 
 
@@ -31,3 +31,12 @@ class DatasetProfile(BaseModel):
     duplicate_row_count: int
     columns: List[ColumnSummary]
     summary_notes: str = "Deterministic profile calculated from actual CSV data"
+
+
+class DatasetPreviewResponse(BaseModel):
+    file_name: str
+    total_rows: int
+    total_columns: int
+    column_names: List[str]
+    preview_rows: List[Dict[str, Any]]
+    profile: DatasetProfile

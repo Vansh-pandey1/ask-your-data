@@ -25,11 +25,11 @@ Work on one milestone at a time. Do not mark it complete until acceptance criter
 - If LLM narrative is included later, it only explains computed facts and cannot replace them with guesses.
 
 ## Milestone 2 — Minimal frontend for upload, preview, and summary
-**Status:** Not started
-- [ ] Add a simple CSV upload UI.
-- [ ] Display the real preview and calculated profile returned by the backend.
-- [ ] Add loading, empty, and error states.
-- [ ] Do not silently use mock data.
+**Status:** Complete
+- [x] Add a simple CSV upload UI.
+- [x] Display the real preview and calculated profile returned by the backend.
+- [x] Add loading, empty, and error states.
+- [x] Do not silently use mock data.
 
 **Acceptance:** Uploading two different CSVs displays their distinct, correct summaries.
 

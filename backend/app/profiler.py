@@ -1,20 +1,11 @@
 import io
-from typing import Union, List
+from typing import Union, List, Dict, Any
 import pandas as pd
-from .schemas import ColumnSummary, DatasetProfile, ColumnType
+from .schemas import ColumnSummary, DatasetProfile, ColumnType, DatasetPreviewResponse
 
 
-def profile_csv(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase], filename: str) -> DatasetProfile:
-    """
-    Calculate deterministic dataset profile from CSV data.
-
-    Args:
-        file_bytes_or_stream: CSV data as bytes, BytesIO, or text stream
-        filename: Original filename for metadata
-
-    Returns:
-        DatasetProfile with calculated metrics
-    """
+def load_dataframe_from_bytes(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase]) -> pd.DataFrame:
+    """Helper to parse CSV data into a validated pandas DataFrame."""
     if isinstance(file_bytes_or_stream, bytes):
         raw_bytes = file_bytes_or_stream
     elif hasattr(file_bytes_or_stream, 'read'):
@@ -36,6 +27,11 @@ def profile_csv(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase], f
     if len(df) == 0:
         raise ValueError("CSV file has no data rows")
 
+    return df
+
+
+def profile_dataframe(df: pd.DataFrame, filename: str) -> DatasetProfile:
+    """Calculate deterministic dataset profile from a pandas DataFrame."""
     total_rows = len(df)
     total_columns = len(df.columns)
     duplicate_rows = int(df.duplicated().sum())
@@ -69,9 +65,7 @@ def profile_csv(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase], f
             non_null = series.dropna()
             if len(non_null) > 0:
                 try:
-                    # Attempt parsing dates with pandas
                     parsed = pd.to_datetime(non_null, errors='coerce', format='mixed')
-                    # If all non-null values parsed successfully as dates
                     if parsed.notna().all():
                         parsed_dates = parsed
                         col_type = ColumnType.date
@@ -112,4 +106,32 @@ def profile_csv(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase], f
         duplicate_row_count=duplicate_rows,
         columns=columns,
         summary_notes=summary_notes
+    )
+
+
+def profile_csv(file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase], filename: str) -> DatasetProfile:
+    """Calculate deterministic dataset profile from CSV data."""
+    df = load_dataframe_from_bytes(file_bytes_or_stream)
+    return profile_dataframe(df, filename)
+
+
+def preview_and_profile_csv(
+    file_bytes_or_stream: Union[bytes, io.BytesIO, io.TextIOBase],
+    filename: str,
+    preview_limit: int = 5
+) -> DatasetPreviewResponse:
+    """Calculate deterministic profile and extract preview rows from CSV data."""
+    df = load_dataframe_from_bytes(file_bytes_or_stream)
+    profile = profile_dataframe(df, filename)
+
+    preview_df = df.head(preview_limit).where(pd.notnull(df.head(preview_limit)), None)
+    preview_rows = preview_df.to_dict(orient="records")
+
+    return DatasetPreviewResponse(
+        file_name=filename,
+        total_rows=profile.total_rows,
+        total_columns=profile.total_columns,
+        column_names=[str(c) for c in df.columns],
+        preview_rows=preview_rows,
+        profile=profile
     )
