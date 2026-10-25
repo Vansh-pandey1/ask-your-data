@@ -57,7 +57,7 @@ def test_ask_missing_api_key_honest_error(monkeypatch):
 
     resp = client.post("/api/ask", json={"question": "What are total sales?"})
     assert resp.status_code == 400
-    assert "gemini_api_key or google_api_key" in resp.json()["detail"].lower()
+    assert "api_key" in resp.json()["detail"].lower()
 
 
 def test_text_to_sql_workflow_clean_execution():

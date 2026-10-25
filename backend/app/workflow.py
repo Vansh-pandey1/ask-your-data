@@ -1,11 +1,15 @@
 import os
 import re
 from typing import TypedDict, List, Dict, Any, Optional
+from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from .db import db_manager, validate_sql
 from .schemas import AskResponse
+
+# Load environment variables from .env if present
+load_dotenv()
 
 
 class SQLWorkflowState(TypedDict):
@@ -18,6 +22,26 @@ class SQLWorkflowState(TypedDict):
     query_result: Optional[Dict[str, Any]]
     correction_attempted: bool
     row_limit: int
+
+
+def extract_text_from_response(response: Any) -> str:
+    """Safely extract plain text from LangChain response, handling strings, lists, and dicts."""
+    content = getattr(response, "content", response)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict) and "text" in item:
+                parts.append(item["text"])
+            elif hasattr(item, "text"):
+                parts.append(str(item.text))
+            else:
+                parts.append(str(item))
+        return "".join(parts)
+    return str(content)
 
 
 def clean_sql(raw: str) -> str:
@@ -35,23 +59,22 @@ def clean_sql(raw: str) -> str:
 def get_gemini_llm(custom_llm: Optional[Any] = None) -> Any:
     """
     Get configured Gemini LLM or custom test LLM.
-    Requires GEMINI_API_KEY or GOOGLE_API_KEY in environment.
+    Requires GOOGLE_API_KEY or GEMINI_API_KEY in environment.
     """
     if custom_llm is not None:
         return custom_llm
 
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError(
-            "GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not configured on the backend. "
+            "GOOGLE_API_KEY or GEMINI_API_KEY environment variable is not configured on the backend. "
             "Please set your Google Gemini API key to enable natural-language questions."
         )
 
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name = os.environ.get("GOOGLE_MODEL") or os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
     return ChatGoogleGenerativeAI(
         model=model_name,
-        google_api_key=api_key,
-        temperature=0.0
+        google_api_key=api_key
     )
 
 
@@ -88,7 +111,7 @@ def create_sql_workflow(llm: Any):
             f"User question: {state['question']}"
         )
         response = llm.invoke([SystemMessage(content="You generate valid SQLite SQL queries."), HumanMessage(content=prompt)])
-        raw_text = response.content if hasattr(response, "content") else str(response)
+        raw_text = extract_text_from_response(response)
         sql = clean_sql(raw_text)
         return {"generated_sql": sql}
 
@@ -126,7 +149,7 @@ def create_sql_workflow(llm: Any):
             f"Return ONLY the corrected SQLite SQL query."
         )
         response = llm.invoke([HumanMessage(content=prompt)])
-        raw_text = response.content if hasattr(response, "content") else str(response)
+        raw_text = extract_text_from_response(response)
         sql = clean_sql(raw_text)
         return {
             "generated_sql": sql,
@@ -201,7 +224,6 @@ def run_text_to_sql_workflow(
     custom_llm: Optional[Any] = None
 ) -> AskResponse:
     """Execute the text-to-SQL workflow and return AskResponse."""
-    # Ensure active dataset exists
     schema_context = build_schema_context()
 
     llm = get_gemini_llm(custom_llm)

@@ -10,3 +10,4 @@ httpx>=0.28.0
 langgraph>=1.2.0
 langchain-google-genai>=4.4.0
 google-genai>=2.33.0
+python-dotenv>=1.0.0
