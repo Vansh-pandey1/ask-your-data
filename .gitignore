@@ -1,0 +1,30 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Local databases and uploaded data
+*.sqlite
+*.sqlite3
+uploads/
+data/private/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
