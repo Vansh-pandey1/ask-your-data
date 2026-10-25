@@ -633,7 +633,7 @@ export default function App() {
                 <div className="dropzone-hint">
                   Drag and drop a file here, or click to browse from your computer
                 </div>
-                <span className="dropzone-badge">Max 20MB &bull; Comma-separated UTF-8</span>
+                <span className="dropzone-badge">Max 100MB &bull; Comma-separated UTF-8</span>
               </label>
 
               {uploading && (

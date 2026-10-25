@@ -53,6 +53,13 @@ def test_api_upload_employees_csv():
     assert first_row["salary"] == 95000
 
 
+def test_api_upload_100mib_boundary():
+    """Verify exactly 100 MiB (104,857,600 bytes) limit boundary."""
+    import backend.app.main as main_mod
+    limit = 104_857_600
+    assert main_mod.MAX_FILE_SIZE == limit
+
+
 def test_api_upload_oversized_file_400(monkeypatch):
     import backend.app.main as main_mod
     monkeypatch.setattr(main_mod, "MAX_FILE_SIZE", 100)  # Temporarily set limit to 100 bytes

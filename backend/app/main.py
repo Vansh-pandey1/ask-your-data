@@ -14,7 +14,7 @@ from .schemas import (
 from .db import db_manager
 from .workflow import run_text_to_sql_workflow
 
-MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB limit
+MAX_FILE_SIZE = 104_857_600  # 100 MiB (104,857,600 bytes) limit
 
 app = FastAPI(
     title="Ask Your Data v2 API",
@@ -41,7 +41,7 @@ async def upload_csv(file: UploadFile = File(...)):
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE // (1024 * 1024)}MB"
+            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE // (1024 * 1024)} MiB"
         )
 
     try:
@@ -74,7 +74,7 @@ async def profile_upload(file: UploadFile = File(...)):
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE // (1024 * 1024)}MB"
+            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE // (1024 * 1024)} MiB"
         )
     try:
         return profile_csv(content, file.filename or "uploaded.csv")
