@@ -34,11 +34,11 @@ Work on one milestone at a time. Do not mark it complete until acceptance criter
 **Acceptance:** Uploading two different CSVs displays their distinct, correct summaries.
 
 ## Milestone 3 — One real query
-**Status:** Not started
-- [ ] Configure one database/query engine.
-- [ ] Load a controlled test dataset and execute a fixed read-only query.
-- [ ] Return actual rows through an API endpoint.
-- [ ] Add an integration test with independently verified expected results.
+**Status:** Complete
+- [x] Configure one database/query engine.
+- [x] Load a controlled test dataset and execute a fixed read-only query.
+- [x] Return actual rows through an API endpoint.
+- [x] Add an integration test with independently verified expected results.
 
 **Acceptance:** Query results are correct; database failure returns an error, not fake data.
 

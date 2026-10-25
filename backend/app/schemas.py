@@ -40,3 +40,29 @@ class DatasetPreviewResponse(BaseModel):
     column_names: List[str]
     preview_rows: List[Dict[str, Any]]
     profile: DatasetProfile
+
+
+class QueryRequest(BaseModel):
+    sql: str
+    row_limit: Optional[int] = 100
+
+
+class QueryResult(BaseModel):
+    columns: List[str]
+    rows: List[Dict[str, Any]]
+    row_count: int
+    executed_sql: str
+    execution_time_ms: float
+
+
+class SchemaColumn(BaseModel):
+    name: str
+    data_type: str
+    original_name: Optional[str] = None
+
+
+class SchemaResponse(BaseModel):
+    table_name: str
+    file_name: str
+    total_rows: int
+    columns: List[SchemaColumn]
