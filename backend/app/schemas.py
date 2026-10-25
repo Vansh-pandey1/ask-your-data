@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import List, Optional, Any, Dict
 from enum import Enum
 
@@ -69,8 +69,17 @@ class SchemaResponse(BaseModel):
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: Optional[str] = None
+    query: Optional[str] = None
     row_limit: Optional[int] = 100
+
+    @model_validator(mode="after")
+    def resolve_question(self):
+        val = self.question or self.query
+        if not val or not str(val).strip():
+            raise ValueError("Field 'question' (or 'query') is required")
+        self.question = str(val).strip()
+        return self
 
 
 class AskResponse(BaseModel):
