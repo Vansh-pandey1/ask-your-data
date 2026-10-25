@@ -1,0 +1,6 @@
+date,product,region,amount,salesperson
+2024-01-15,Widget A,East,120.50,Alice
+2024-01-16,Widget B,West,235.00,Bob
+2024-01-17,Widget A,East,120.50,Alice
+2024-01-18,Widget C,East,89.99,Charlie
+2024-01-19,Widget B,West,235.00,Bob

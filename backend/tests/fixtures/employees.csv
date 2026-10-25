@@ -1,0 +1,4 @@
+name,email,age,department,salary
+Alice,alice@test.com,30,Engineering,95000
+Bob,bob@test.com,25,Marketing,72000
+Carol,carol@test.com,35,Engineering,110000

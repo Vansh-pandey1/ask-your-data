@@ -3,20 +3,20 @@
 Work on one milestone at a time. Do not mark it complete until acceptance criteria have been verified. Stop and ask for approval before starting the next milestone.
 
 ## Milestone 0 — Check the environment
-**Status:** Not started
-- [ ] Inspect the new project folder and available tools.
-- [ ] Identify the simplest suitable database/query approach.
-- [ ] Propose the smallest first implementation.
+**Status:** Complete
+- [x] Inspect the new project folder and available tools.
+- [x] Identify the simplest suitable database/query approach.
+- [x] Propose the smallest first implementation.
 
 **Acceptance:** No code changes; explain the plan and dependencies.
 
 ## Milestone 1 — CSV profiling and dataset summary
-**Status:** Not started
-- [ ] Create a small backend function that reads a CSV and calculates its profile.
-- [ ] Calculate row/column counts, inferred types, missing values, duplicate rows, numeric statistics, and suitable category/date summaries.
-- [ ] Return structured summary data from an API endpoint or testable function.
-- [ ] Add tests using at least two CSVs with different schemas and known expected statistics.
-- [ ] Ensure an empty or malformed CSV returns a clear error.
+**Status:** Complete
+- [x] Create a small backend function that reads a CSV and calculates its profile.
+- [x] Calculate row/column counts, inferred types, missing values, duplicate rows, numeric statistics, and suitable category/date summaries.
+- [x] Return structured summary data from an API endpoint or testable function.
+- [x] Add tests using at least two CSVs with different schemas and known expected statistics.
+- [x] Ensure an empty or malformed CSV returns a clear error.
 
 **Acceptance criteria**
 - All reported numbers match independently calculated expected values.
