@@ -84,9 +84,11 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     question: str
-    generated_sql: str
-    columns: List[str]
-    rows: List[Dict[str, Any]]
-    row_count: int
+    generated_sql: str = ""
+    columns: List[str] = []
+    rows: List[Dict[str, Any]] = []
+    row_count: int = 0
     correction_attempted: bool = False
+    answerable: bool = True
+    explanation: Optional[str] = None
     error: Optional[str] = None

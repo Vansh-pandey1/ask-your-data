@@ -77,11 +77,12 @@ export default function App() {
         throw new Error(data.detail || 'Failed to answer question');
       }
 
-      if (data.error) {
+      if (data.error && data.answerable !== false) {
         setAskError(data.error);
         setAnswer(null);
       } else {
         setAnswer(data);
+        setAskError(null);
       }
     } catch (err) {
       setAskError(err.message);
@@ -340,7 +341,14 @@ export default function App() {
             )}
 
             {/* Answer Display */}
-            {answer && (
+            {answer && !answer.answerable && (
+              <div className="alert alert-warning">
+                <strong>Cannot Answer: </strong>
+                {answer.explanation || answer.error}
+              </div>
+            )}
+
+            {answer && answer.answerable && (
               <div className="answer-section">
                 {/* Generated SQL Accordion */}
                 <div className="sql-box">

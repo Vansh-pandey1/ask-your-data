@@ -21,6 +21,7 @@ def sanitize_identifier(col: str) -> str:
 def validate_sql(sql: str) -> None:
     """
     Validate that the SQL statement is strictly a single, read-only SELECT query.
+    This performs basic syntax and structure validation WITHOUT requiring an active dataset.
     Raises ValueError with a clear explanation if validation fails.
     """
     if not sql or not sql.strip():
@@ -58,6 +59,53 @@ def validate_sql(sql: str) -> None:
     for kw in forbidden_keywords:
         if re.search(r'\b' + kw + r'\b', sql_upper):
             raise ValueError(f"Prohibited keyword '{kw}' found in query")
+
+
+def validate_sql_against_schema(sql: str) -> None:
+    """
+    Validate that the SQL statement references only tables and columns
+    that exist in the active dataset schema or are defined as aliases/CTEs within the query.
+    Must be called after validate_sql() and requires an active dataset.
+    """
+    # First run basic validation
+    validate_sql(sql)
+
+    # Now validate against active schema
+    parsed = sqlglot.parse(sql, read="sqlite")
+    stmt = parsed[0]
+
+    schema = db_manager.get_schema()
+    base_table = schema.table_name.lower()
+    valid_columns = {col.name.lower() for col in schema.columns}
+
+    # Collect CTE names and table aliases defined in the query
+    cte_names = {cte.alias.lower() for cte in stmt.find_all(exp.CTE) if cte.alias}
+    table_aliases = {t.alias.lower() for t in stmt.find_all(exp.Table) if t.alias}
+    valid_tables = {base_table} | cte_names | table_aliases
+
+    # Collect column aliases defined in the query (e.g. SUM(amount) AS total_sales)
+    column_aliases = {a.alias.lower() for a in stmt.find_all(exp.Alias) if a.alias}
+    allowed_columns = valid_columns | column_aliases
+
+    # Check table references
+    for table in stmt.find_all(exp.Table):
+        tbl_name = table.name.lower()
+        if tbl_name and tbl_name not in valid_tables:
+            raise ValueError(f"Table '{table.name}' does not exist in active dataset schema")
+
+    # Check column references (skip wildcard)
+    for column in stmt.find_all(exp.Column):
+        col_name = column.name
+        if not col_name or col_name == "*":
+            continue
+        # Skip alias definitions themselves (e.g., in `AS col_alias`)
+        if isinstance(column.parent, exp.Alias) and column.parent.alias == col_name:
+            continue
+        if col_name.lower() not in allowed_columns:
+            raise ValueError(
+                f"No such column: {col_name}. It does not exist in active dataset schema. "
+                f"Available columns: {', '.join(sorted(valid_columns))}"
+            )
 
 
 class DatabaseManager:
@@ -166,7 +214,7 @@ class DatabaseManager:
         Enforces timeout and row limits.
         """
         # Validate query before touching the database
-        validate_sql(sql)
+        validate_sql_against_schema(sql)
 
         with self._lock:
             if self._conn is None:

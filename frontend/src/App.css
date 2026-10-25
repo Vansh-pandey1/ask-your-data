@@ -389,6 +389,13 @@ body {
   border: 1px solid var(--danger-border);
 }
 
+.alert-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  line-height: 1.5;
+}
+
 .alert-info {
   background: var(--info-bg);
   color: var(--info-text);
