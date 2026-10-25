@@ -91,4 +91,5 @@ class AskResponse(BaseModel):
     correction_attempted: bool = False
     answerable: bool = True
     explanation: Optional[str] = None
+    insight: Optional[str] = None
     error: Optional[str] = None

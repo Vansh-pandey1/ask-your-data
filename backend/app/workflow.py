@@ -25,6 +25,8 @@ class SQLWorkflowState(TypedDict):
     # Answerability fields
     is_answerable: Optional[bool]
     unanswerable_reason: Optional[str]
+    # AI Insight
+    insight: Optional[str]
 
 
 def extract_text_from_response(response: Any) -> str:
@@ -161,8 +163,9 @@ def create_sql_workflow(llm: Any):
             f"You are a helpful SQL assistant. Write a single SQLite read-only query to answer the user's question.\n"
             f"Rules:\n"
             f"1. Use ONLY the table '{db_manager.table_name}' and the columns listed in the schema.\n"
-            f"2. Return ONLY the SQL query. Do not include markdown explanations or text outside the query.\n"
-            f"3. Do not modify the database (only SELECT queries are allowed).\n\n"
+            f"2. Ensure queries retrieve complete information, including relevant numerical metrics (like MAX, AVG, SUM, COUNT) alongside group labels when appropriate.\n"
+            f"3. Return ONLY the SQL query. Do not include markdown explanations or text outside the query.\n"
+            f"4. Do not modify the database (only SELECT queries are allowed).\n\n"
             f"Schema:\n{state['schema_context']}\n\n"
             f"User question: {state['question']}"
         )
@@ -193,6 +196,51 @@ def create_sql_workflow(llm: Any):
             }
         except ValueError as e:
             return {"execution_error": str(e), "query_result": None}
+
+    def generate_insight_node(state: SQLWorkflowState) -> Dict[str, Any]:
+        """
+        Generate a grounded, natural-language insight from the executed SQL result.
+        Uses Gemini to explain the result based on actual query rows.
+        Returns insight or graceful fallback message without failing the query.
+        """
+        query_result = state.get("query_result")
+        if not query_result:
+            return {"insight": None}
+
+        rows = query_result.get("rows", [])
+        if not rows:
+            return {"insight": "No matching records were found in the dataset for this question."}
+
+        columns = query_result.get("columns", [])
+        cols_str = ", ".join(columns)
+        sample_rows = rows[:10]
+        rows_preview = "\n".join([str(row) for row in sample_rows])
+        total_rows = query_result.get("row_count", len(rows))
+
+        prompt = (
+            f"You are a data analyst. Generate a concise natural-language explanation (1 to 3 sentences) "
+            f"answering the user's question based strictly on the SQL query results below.\n\n"
+            f"User question: {state['question']}\n\n"
+            f"Executed SQL: {state['generated_sql']}\n\n"
+            f"Result columns: {cols_str}\n\n"
+            f"Result rows (showing {len(sample_rows)} of {total_rows}):\n{rows_preview}\n\n"
+            f"Guidelines:\n"
+            f"1. Directly answer the question in 1 to 3 clear, natural sentences.\n"
+            f"2. Mention relevant numerical values and specific categories/names from the result rows.\n"
+            f"3. Strictly use ONLY facts directly present in the result rows. Never invent numbers, guess, or extrapolate.\n"
+            f"4. Do not mention SQL keywords, table names, or technical database syntax unless asked."
+        )
+
+        try:
+            response = llm.invoke([
+                SystemMessage(content="You are a data analyst who provides concise, accurate insights based strictly on query results."),
+                HumanMessage(content=prompt)
+            ])
+            raw_text = extract_text_from_response(response)
+            insight = raw_text.strip()
+            return {"insight": insight}
+        except Exception:
+            return {"insight": "Explanation is temporarily unavailable."}
 
     def correct_sql_node(state: SQLWorkflowState) -> Dict[str, Any]:
         err_msg = state.get("validation_error") or state.get("execution_error") or "Unknown error"
@@ -232,7 +280,7 @@ def create_sql_workflow(llm: Any):
             if not state.get("correction_attempted", False):
                 return "correct_sql_node"
             return "set_execution_error_end"
-        return END
+        return "generate_insight_node"
 
     def set_validation_error_end(state: SQLWorkflowState) -> Dict[str, Any]:
         return {"final_error": state.get("validation_error")}
@@ -250,6 +298,7 @@ def create_sql_workflow(llm: Any):
     builder.add_node("validate_sql_node", validate_sql_node)
     builder.add_node("execute_sql_node", execute_sql_node)
     builder.add_node("correct_sql_node", correct_sql_node)
+    builder.add_node("generate_insight_node", generate_insight_node)
     builder.add_node("set_validation_error_end", set_validation_error_end)
     builder.add_node("set_execution_error_end", set_execution_error_end)
     builder.add_node("set_unanswerable_end", set_unanswerable_end)
@@ -283,9 +332,11 @@ def create_sql_workflow(llm: Any):
         {
             "correct_sql_node": "correct_sql_node",
             "set_execution_error_end": "set_execution_error_end",
-            END: END
+            "generate_insight_node": "generate_insight_node"
         }
     )
+
+    builder.add_edge("generate_insight_node", END)
 
     builder.add_edge("correct_sql_node", "validate_sql_node")
     builder.add_edge("set_validation_error_end", END)
@@ -317,7 +368,8 @@ def run_text_to_sql_workflow(
         "correction_attempted": False,
         "row_limit": row_limit,
         "is_answerable": None,
-        "unanswerable_reason": None
+        "unanswerable_reason": None,
+        "insight": None
     }
 
     final_state = graph.invoke(initial_state)
@@ -353,6 +405,7 @@ def run_text_to_sql_workflow(
 
     query_res = final_state.get("query_result") or {}
     is_answerable = final_state.get("is_answerable", True)
+    insight = final_state.get("insight")
 
     return AskResponse(
         question=question,
@@ -362,5 +415,6 @@ def run_text_to_sql_workflow(
         row_count=query_res.get("row_count", 0),
         correction_attempted=final_state.get("correction_attempted", False),
         error=None,
-        answerable=is_answerable
+        answerable=is_answerable,
+        insight=insight
     )

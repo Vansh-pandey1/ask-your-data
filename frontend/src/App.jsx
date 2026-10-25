@@ -350,6 +350,13 @@ export default function App() {
 
             {answer && answer.answerable && (
               <div className="answer-section">
+                {/* AI Insight Card */}
+                {answer.insight && (
+                  <div className="insight-card alert alert-info">
+                    <strong>AI Insight:</strong> {answer.insight}
+                  </div>
+                )}
+
                 {/* Generated SQL Accordion */}
                 <div className="sql-box">
                   <div

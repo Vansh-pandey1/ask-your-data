@@ -21,31 +21,48 @@ def clean_database():
 import json
 
 class MockLLM:
-    """Mock LLM returning sequential predetermined answers or JSON for answerability."""
+    """Mock LLM returning sequential predetermined answers or JSON for answerability and insights."""
     def __init__(self, responses):
         self.responses = list(responses)
         self.call_count = 0
 
     def invoke(self, messages):
-        resp = self.responses[min(self.call_count, len(self.responses) - 1)]
-        self.call_count += 1
-        mock = MagicMock()
-        # If the prompt asks about answerability (JSON expected) and the response is not JSON,
-        # provide appropriate JSON.
         msg_content = str(messages[-1].content) if messages else ""
+
+        # Handle answerability prompt
         if "Determine if the user's question can be answered" in msg_content:
-            # For answerability, we check if the test SQL responses contain valid columns
-            # If the response is a SELECT query string, assume it's answerable
+            resp = self.responses[min(self.call_count, len(self.responses) - 1)]
+            self.call_count += 1
             if isinstance(resp, str) and resp.strip().upper().startswith("SELECT"):
-                # Check if the SQL references known columns in the fixture
                 resp = json.dumps({"answerable": True, "reason": "Question is answerable with available columns"})
-            # Non-SELECT statements (DROP, DELETE, etc.) are not answerable as SQL
             elif isinstance(resp, str) and resp.strip().upper().startswith(("DROP", "DELETE", "INSERT", "UPDATE", "ALTER")):
                 resp = json.dumps({"answerable": False, "reason": f"Mutating operation not allowed: {resp}"})
             elif isinstance(resp, str) and not resp.strip().startswith("{"):
                 resp = json.dumps({"answerable": False, "reason": resp})
             elif isinstance(resp, bool):
                 resp = json.dumps({"answerable": resp, "reason": "Mock answerability check"})
+            mock = MagicMock()
+            mock.content = resp
+            return mock
+
+        # Handle insight generation prompt
+        if "data analyst" in msg_content or "natural-language explanation" in msg_content:
+            if self.call_count < len(self.responses):
+                resp = self.responses[self.call_count]
+                self.call_count += 1
+                if resp == "RAISE_EXCEPTION":
+                    raise RuntimeError("Gemini API connection error")
+                mock = MagicMock()
+                mock.content = resp
+                return mock
+            mock = MagicMock()
+            mock.content = "Based on the query results, the data was retrieved successfully."
+            return mock
+
+        # Default: SQL generation or correction
+        resp = self.responses[min(self.call_count, len(self.responses) - 1)]
+        self.call_count += 1
+        mock = MagicMock()
         mock.content = resp
         return mock
 
@@ -347,4 +364,142 @@ def test_unsafe_sql_request_rejected():
     check_resp = client.post("/api/query", json={"sql": "SELECT COUNT(*) as c FROM dataset"})
     assert check_resp.status_code == 200
     assert check_resp.json()["rows"][0]["c"] == 5
+
+
+def test_ai_generated_insight_success():
+    """Workflow generates SQL and attaches a grounded AI insight."""
+    csv_path = FIXTURES_DIR / "employees.csv"
+    with open(csv_path, "rb") as f:
+        client.post("/api/upload", files={"file": ("employees.csv", f, "text/csv")})
+
+    mock_llm = MockLLM([
+        json.dumps({"answerable": True, "reason": "Department and salary available"}),
+        "SELECT department, MAX(salary) AS max_salary FROM dataset GROUP BY department",
+        "Engineering has the highest max salary at $110,000."
+    ])
+
+    result = run_text_to_sql_workflow(
+        question="What is the max salary by department?",
+        custom_llm=mock_llm
+    )
+
+    assert result.error is None
+    assert result.insight == "Engineering has the highest max salary at $110,000."
+    assert result.row_count == 2
+
+
+def test_ai_generated_insight_failure_graceful_fallback():
+    """If insight generation throws an exception, SQL results are preserved and insight is fallback."""
+    csv_path = FIXTURES_DIR / "employees.csv"
+    with open(csv_path, "rb") as f:
+        client.post("/api/upload", files={"file": ("employees.csv", f, "text/csv")})
+
+    mock_llm = MockLLM([
+        json.dumps({"answerable": True, "reason": "Department and salary available"}),
+        "SELECT department, MAX(salary) AS max_salary FROM dataset GROUP BY department",
+        "RAISE_EXCEPTION"
+    ])
+
+    result = run_text_to_sql_workflow(
+        question="What is the max salary by department?",
+        custom_llm=mock_llm
+    )
+
+    assert result.error is None
+    assert result.row_count == 2
+    assert result.insight == "Explanation is temporarily unavailable."
+
+
+def test_ai_generated_insight_empty_results():
+    """If query returns 0 rows, insight gives appropriate no-matching-records notice."""
+    csv_path = FIXTURES_DIR / "employees.csv"
+    with open(csv_path, "rb") as f:
+        client.post("/api/upload", files={"file": ("employees.csv", f, "text/csv")})
+
+    mock_llm = MockLLM([
+        json.dumps({"answerable": True, "reason": "Department and salary available"}),
+        "SELECT department, salary FROM dataset WHERE salary > 999999",
+        "No matching records were found in the dataset for this question."
+    ])
+
+    result = run_text_to_sql_workflow(
+        question="Who earns over a million?",
+        custom_llm=mock_llm
+    )
+
+    assert result.error is None
+    assert result.row_count == 0
+    assert "no matching records" in result.insight.lower()
+
+
+def test_ai_insight_max_avg_sum_with_numerical_values():
+    """Verify MAX, AVG, and SUM queries return numerical values alongside group labels."""
+    csv_path = FIXTURES_DIR / "employees.csv"
+    with open(csv_path, "rb") as f:
+        client.post("/api/upload", files={"file": ("employees.csv", f, "text/csv")})
+
+    # Test AVG
+    mock_llm_avg = MockLLM([
+        json.dumps({"answerable": True, "reason": "Department and salary available"}),
+        "SELECT department, AVG(salary) AS avg_salary FROM dataset GROUP BY department ORDER BY avg_salary DESC LIMIT 1",
+        "Engineering has the highest average salary at $102,500."
+    ])
+    res_avg = run_text_to_sql_workflow(
+        question="Which department has highest average salary?",
+        custom_llm=mock_llm_avg
+    )
+    assert res_avg.error is None
+    assert "avg_salary" in res_avg.columns
+    assert res_avg.rows[0]["department"] == "Engineering"
+    assert res_avg.rows[0]["avg_salary"] == 102500.0
+    assert "102,500" in res_avg.insight
+
+    # Test SUM
+    mock_llm_sum = MockLLM([
+        json.dumps({"answerable": True, "reason": "Department and salary available"}),
+        "SELECT department, SUM(salary) AS total_payroll FROM dataset GROUP BY department ORDER BY total_payroll DESC LIMIT 1",
+        "Engineering has the largest total payroll at $205,000."
+    ])
+    res_sum = run_text_to_sql_workflow(
+        question="Which department has highest total payroll?",
+        custom_llm=mock_llm_sum
+    )
+    assert res_sum.error is None
+    assert "total_payroll" in res_sum.columns
+    assert res_sum.rows[0]["total_payroll"] == 205000.0
+    assert "205,000" in res_sum.insight
+
+
+def test_unanswerable_and_failed_queries_have_no_insight():
+    """Unanswerable questions and queries with execution errors must NOT have an insight."""
+    csv_path = FIXTURES_DIR / "employees.csv"
+    with open(csv_path, "rb") as f:
+        client.post("/api/upload", files={"file": ("employees.csv", f, "text/csv")})
+
+    # Case 1: Unanswerable
+    mock_llm_un = MockLLM([
+        json.dumps({"answerable": False, "reason": "No stock column"})
+    ])
+    res_un = run_text_to_sql_workflow(
+        question="What is the stock price?",
+        custom_llm=mock_llm_un
+    )
+    assert res_un.answerable is False
+    assert res_un.insight is None
+
+    # Case 2: Failed SQL
+    mock_llm_fail = MockLLM([
+        json.dumps({"answerable": True, "reason": "Answerable"}),
+        "SELECT invalid_col FROM dataset",
+        "SELECT invalid_col FROM dataset"
+    ])
+    res_fail = run_text_to_sql_workflow(
+        question="Invalid query",
+        custom_llm=mock_llm_fail
+    )
+    assert res_fail.error is not None
+    assert res_fail.insight is None
+
+
+
 

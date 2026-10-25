@@ -335,6 +335,10 @@ body {
   margin-top: 16px;
 }
 
+.insight-card {
+  margin-bottom: 8px;
+}
+
 .sql-box {
   background: #f8fafc;
   border: 1px solid var(--border-color);
