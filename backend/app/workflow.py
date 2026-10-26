@@ -99,7 +99,7 @@ def clean_sql(raw: str) -> str:
 def get_gemini_llm(custom_llm: Optional[Any] = None) -> Any:
     """
     Get configured LLM (Gemini or OpenAI compatible/Groq) or custom test LLM.
-    Supports GOOGLE_API_KEY/GEMINI_API_KEY or OPENAI_API_KEY / GROQ_API_KEY.
+    Supports GOOGLE_API_KEY/GEMINI_API_KEY / GROQ_API_KEY.
     """
     if custom_llm is not None:
         return custom_llm
