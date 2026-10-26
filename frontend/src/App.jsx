@@ -244,7 +244,7 @@ export default function App() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/ask`, {
         method: 'POST',
         body: formData,
       });
