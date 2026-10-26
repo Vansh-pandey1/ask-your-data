@@ -11,6 +11,10 @@ import {
 } from 'recharts';
 import './App.css';
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || ''
+).replace(/\/+$/, '')
+
 // Chart color palette - accessible, distinct colors for grouped series
 const CHART_COLORS = ['#2563eb', '#1d4ed8', '#0844c7', '#065f99', '#047857', '#065f46', '#055734', '#04582c', '#044b26', '#034220'];
 
@@ -270,7 +274,7 @@ export default function App() {
     setAnswer(null);
 
     try {
-      const res = await fetch('/api/ask', {
+      const res = await fetch(`${API_BASE_URL}/api/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question.trim(), row_limit: 100 }),
