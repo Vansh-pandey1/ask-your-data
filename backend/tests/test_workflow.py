@@ -29,20 +29,45 @@ class MockLLM:
     def invoke(self, messages):
         msg_content = str(messages[-1].content) if messages else ""
 
-        # Handle answerability prompt
-        if "Determine if the user's question can be answered" in msg_content:
-            resp = self.responses[min(self.call_count, len(self.responses) - 1)]
-            self.call_count += 1
-            if isinstance(resp, str) and resp.strip().upper().startswith("SELECT"):
-                resp = json.dumps({"answerable": True, "reason": "Question is answerable with available columns"})
-            elif isinstance(resp, str) and resp.strip().upper().startswith(("DROP", "DELETE", "INSERT", "UPDATE", "ALTER")):
-                resp = json.dumps({"answerable": False, "reason": f"Mutating operation not allowed: {resp}"})
-            elif isinstance(resp, str) and not resp.strip().startswith("{"):
-                resp = json.dumps({"answerable": False, "reason": resp})
-            elif isinstance(resp, bool):
-                resp = json.dumps({"answerable": resp, "reason": "Mock answerability check"})
+        # Handle unified intent classification & schema answerability prompt
+        if "intent classifier" in msg_content or "schema analyst" in msg_content:
+            # Check if test provided an unanswerable or custom answerability response upfront
+            if self.responses and self.call_count < len(self.responses):
+                first_resp = self.responses[self.call_count]
+                if isinstance(first_resp, str) and ("answerable" in first_resp or "not allowed" in first_resp):
+                    self.call_count += 1
+                    try:
+                        parsed = json.loads(first_resp)
+                        is_ans = parsed.get("answerable", True)
+                        reason = parsed.get("reason", "")
+                        mock = MagicMock()
+                        mock.content = json.dumps({
+                            "intent": "DATA_ANALYSIS",
+                            "statement_type": "SELECT",
+                            "is_answerable": is_ans,
+                            "unanswerable_reason": reason
+                        })
+                        return mock
+                    except Exception:
+                        pass
+                elif isinstance(first_resp, bool):
+                    self.call_count += 1
+                    mock = MagicMock()
+                    mock.content = json.dumps({
+                        "intent": "DATA_ANALYSIS",
+                        "statement_type": "SELECT",
+                        "is_answerable": first_resp,
+                        "unanswerable_reason": "Mock answerability check" if not first_resp else None
+                    })
+                    return mock
+
             mock = MagicMock()
-            mock.content = resp
+            mock.content = json.dumps({
+                "intent": "DATA_ANALYSIS",
+                "statement_type": "SELECT",
+                "is_answerable": True,
+                "unanswerable_reason": None
+            })
             return mock
 
         # Handle insight generation prompt

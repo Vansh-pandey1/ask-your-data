@@ -51,7 +51,7 @@ async def upload_csv(file: UploadFile = File(...)):
         db_manager.load_dataset(df, filename)
         # Calculate profile
         profile = profile_dataframe(df, filename)
-        # Extract preview rows
+        # Extract preview rows - evaluate once
         preview_df = df.head(5).where(pd.notnull(df.head(5)), None)
         preview_rows = preview_df.to_dict(orient="records")
 
@@ -110,7 +110,10 @@ async def ask_question(req: AskRequest):
     validate it, execute it against the active dataset, and return results.
     """
     try:
-        return run_text_to_sql_workflow(req.question, req.row_limit or 100)
+        import anyio
+        return await anyio.to_thread.run_sync(
+            run_text_to_sql_workflow, req.question, req.row_limit or 100
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

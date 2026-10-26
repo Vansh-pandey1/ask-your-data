@@ -28,3 +28,10 @@ data/private/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Python
+.coverage
+htmlcov/
+
+# Local databases and uploaded data
+*.db

@@ -7,8 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  Cell
+  Legend
 } from 'recharts';
 import './App.css';
 
@@ -163,7 +162,6 @@ export default function App() {
   const [dataset, setDataset] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-
   const [question, setQuestion] = useState('');
   const [asking, setAsking] = useState(false);
   const [answer, setAnswer] = useState(null);
@@ -323,7 +321,6 @@ export default function App() {
     const categoricalCols = columns.filter(col => typeof firstRow[col] === 'string' || typeof firstRow[col] === 'boolean');
 
     // Heuristic: Identify the "measure" column (what to visualize)
-    // Priority: columns named count/total/sum/avg/average/max/min > columns with high cardinality > first numeric
     const measureKeywords = ['count', 'total', 'sum', 'avg', 'average', 'max', 'min', 'mean', 'median', 'value'];
     let measureCol = null;
     for (const kw of measureKeywords) {
@@ -333,7 +330,6 @@ export default function App() {
         break;
       }
     }
-    // If no keyword match, prefer numeric with high cardinality (many unique values)
     if (!measureCol && numericCols.length > 1) {
       const cardinality = numericCols.map(col => ({
         col,
@@ -341,36 +337,29 @@ export default function App() {
       })).sort((a, b) => b.unique - a.unique);
       measureCol = cardinality[0].col;
     }
-    // Fallback: first numeric
     if (!measureCol) measureCol = numericCols[0];
 
-    // Numeric columns with low cardinality (0/1, 1-5, etc.) are likely coded categories
     const lowCardinalityThreshold = 10;
     const codedCategoricalCols = numericCols.filter(col => {
       const uniqueVals = new Set(result.rows.map(r => r[col])).size;
       return uniqueVals <= lowCardinalityThreshold && col !== measureCol;
     });
 
-    // Combine explicit categorical + coded categorical
     const allCategoricalCols = [...categoricalCols, ...codedCategoricalCols];
 
-    // Need at least 1 categorical and 1 numeric (measure)
     if (allCategoricalCols.length === 0 || numericCols.length === 0) {
       return null;
     }
 
     // Case 1: Two+ categorical columns + measure = Grouped Bar Chart
-    // e.g., geography, exited, count
     if (allCategoricalCols.length >= 2 && numericCols.length >= 1) {
-      const cat1 = allCategoricalCols[0]; // X-axis category
-      const cat2 = allCategoricalCols[1]; // Series/grouping dimension
-      const numCol = measureCol;           // Value
+      const cat1 = allCategoricalCols[0];
+      const cat2 = allCategoricalCols[1];
+      const numCol = measureCol;
 
-      // Get unique categories and series in order of appearance
       const categories = [...new Set(result.rows.map(r => r[cat1]))];
       const seriesValues = [...new Set(result.rows.map(r => r[cat2]))];
 
-      // Pivot data: each row = one category, with a property for each series value
       const chartData = categories.map(cat => {
         const row = { [cat1]: cat };
         seriesValues.forEach(sv => {
@@ -393,12 +382,10 @@ export default function App() {
     }
 
     // Case 2: One categorical + measure = Simple Bar Chart
-    // e.g., product, total_sales
     if (allCategoricalCols.length === 1 && numericCols.length >= 1) {
       const catKey = allCategoricalCols[0];
       const numKey = measureCol;
 
-      // Limit categories for readability
       const uniqueCats = [...new Set(result.rows.map(r => r[catKey]))];
       if (uniqueCats.length > 30) return null;
 
@@ -412,7 +399,6 @@ export default function App() {
     }
 
     // Case 3: Multiple numeric columns with one categorical = Multi-series Bar Chart
-    // e.g., product, sales_q1, sales_q2, sales_q3
     if (categoricalCols.length === 1 && numericCols.length >= 2) {
       const catKey = categoricalCols[0];
       const uniqueCats = [...new Set(result.rows.map(r => r[catKey]))];
@@ -450,7 +436,6 @@ export default function App() {
     return prompts.slice(0, 3);
   };
 
-  // Total missing values across all columns
   const totalNulls = dataset?.profile?.columns?.reduce(
     (acc, col) => acc + (col.null_count || 0),
     0
@@ -465,13 +450,13 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="bento-header">
+      <header className="header">
         <div className="header-brand">
-          <div className="brand-icon-wrapper">
+          <div className="brand-icon">
             <IconDatabase size={22} />
           </div>
           <div className="brand-titles">
-            <h1>Ask Your Data</h1>
+            <h1 className="brand-title">Ask Your Data</h1>
             <span className="brand-tagline">AI-Powered SQL Analytics & Dataset Insights</span>
           </div>
         </div>
@@ -486,7 +471,7 @@ export default function App() {
                   &bull; {dataset.total_rows.toLocaleString()} rows
                 </span>
               </div>
-              <label className="btn-secondary">
+              <label className="btn btn-secondary">
                 <IconUpload size={14} />
                 Switch Dataset
                 <input
@@ -504,11 +489,11 @@ export default function App() {
             </div>
           )}
 
-          {/* Theme Selector - Compact Icon Button with Dropdown */}
-          <div className="theme-selector" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          {/* Theme Selector */}
+          <div className="theme-selector" ref={themeMenuRef}>
             <button
               type="button"
-              className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+              className={`theme-toggle ${theme === 'light' ? 'active' : ''}`}
               onClick={() => setThemeMenuOpen(prev => !prev)}
               aria-haspopup="menu"
               aria-expanded={themeMenuOpen}
@@ -516,46 +501,16 @@ export default function App() {
               title="Change appearance"
             >
               {theme === 'light' ? <IconSun size={15} /> : theme === 'dark' ? <IconMoon size={15} /> : <IconMonitor size={15} />}
-              <span className="theme-toggle-label" style={{ textTransform: 'capitalize' }}>{theme}</span>
+              <span style={{ textTransform: 'capitalize' }}>{theme}</span>
             </button>
 
-            <div
-              className={`theme-dropdown-menu ${themeMenuOpen ? 'open' : ''}`}
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                right: 0,
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-md)',
-                minWidth: '150px',
-                padding: '6px 0',
-                display: themeMenuOpen ? 'block' : 'none',
-                zIndex: 1000
-              }}
-              aria-labelledby="theme-toggle-btn"
-            >
+            <div className={`theme-dropdown ${themeMenuOpen ? 'open' : ''}`}>
               <button
                 type="button"
                 className="theme-dropdown-item"
                 onClick={() => {
                   setTheme('light');
                   setThemeMenuOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 14px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid var(--border-hover)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: '13px'
                 }}
               >
                 <IconSun size={14} /> Light
@@ -567,20 +522,6 @@ export default function App() {
                   setTheme('dark');
                   setThemeMenuOpen(false);
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 14px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid var(--border-hover)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: '13px'
-                }}
               >
                 <IconMoon size={14} /> Dark
               </button>
@@ -591,19 +532,6 @@ export default function App() {
                   setTheme('system');
                   setThemeMenuOpen(false);
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 14px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontSize: '13px'
-                }}
               >
                 <IconMonitor size={14} /> System
               </button>
@@ -613,12 +541,12 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="bento-grid-stack">
+      <main className="bento-grid">
         {/* State A: No Dataset Loaded -> Bento Hero Upload */}
         {!dataset && (
-          <div className="bento-hero-grid">
-            <div className="bento-card bento-upload-hero">
-              <label className="dropzone-container">
+          <div className="hero-grid">
+            <div className="upload-hero hybrid-card">
+              <label className="dropzone">
                 <input
                   type="file"
                   accept=".csv,text/csv"
@@ -626,7 +554,7 @@ export default function App() {
                   disabled={uploading}
                   hidden
                 />
-                <div className="dropzone-icon-circle">
+                <div className="dropzone-icon">
                   <IconUpload size={26} />
                 </div>
                 <div className="dropzone-title">Upload your CSV dataset</div>
@@ -637,7 +565,7 @@ export default function App() {
               </label>
 
               {uploading && (
-                <div className="bento-alert bento-alert-info">
+                <div className="alert alert-info" style={{ marginTop: 16 }}>
                   <span className="spinner"></span>
                   <div>
                     <strong>Profiling dataset...</strong> Ingesting into isolated SQLite in-memory engine and computing column statistics.
@@ -646,7 +574,7 @@ export default function App() {
               )}
 
               {uploadError && (
-                <div className="bento-alert bento-alert-error">
+                <div className="alert alert-error" style={{ marginTop: 16 }}>
                   <IconAlertTriangle size={18} />
                   <div>
                     <strong>Upload failed:</strong> {uploadError}
@@ -655,29 +583,29 @@ export default function App() {
               )}
             </div>
 
-            <div className="bento-card bento-info-hero">
-              <div>
-                <h3 className="bento-card-title">
+            <div className="info-hero hybrid-card">
+              <div className="info-hero-content">
+                <h3 className="info-hero-title">
                   <IconSparkles size={18} /> How Ask Your Data Works
                 </h3>
-                <div className="info-feature-list">
-                  <div className="info-feature-item">
-                    <span className="info-feature-num">1</span>
-                    <div className="info-feature-text">
+                <div className="feature-list">
+                  <div className="feature-item">
+                    <div className="feature-num">1</div>
+                    <div className="feature-text">
                       <h4>Deterministic Ingestion</h4>
                       <p>Computes instant schema reflection, types, null rates, and distribution stats without LLM hallucination.</p>
                     </div>
                   </div>
-                  <div className="info-feature-item">
-                    <span className="info-feature-num">2</span>
-                    <div className="info-feature-text">
+                  <div className="feature-item">
+                    <div className="feature-num">2</div>
+                    <div className="feature-text">
                       <h4>LangGraph + Gemini Agent</h4>
                       <p>Evaluates answerability, translates natural language to read-only SQL, and validates column names via AST.</p>
                     </div>
                   </div>
-                  <div className="info-feature-item">
-                    <span className="info-feature-num">3</span>
-                    <div className="info-feature-text">
+                  <div className="feature-item">
+                    <div className="feature-num">3</div>
+                    <div className="feature-text">
                       <h4>Grounded AI Insights</h4>
                       <p>Inspects executed SQL rows directly to synthesize concise, factually accurate explanations.</p>
                     </div>
@@ -685,7 +613,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="info-security-pill">
+              <div className="info-security">
                 <IconCode size={16} /> Read-only analytical SQL &bull; In-memory isolation &bull; No mock data
               </div>
             </div>
@@ -696,71 +624,71 @@ export default function App() {
         {dataset && (
           <>
             {/* 1. Bento Overview KPI Cards */}
-            <section className="bento-stat-grid">
-              <div className="bento-stat-card">
-                <div className="stat-icon-wrapper stat-icon-blue">
+            <div className="stat-grid">
+              <div className="stat-card stat-card-rows neu-card">
+                <div className="stat-icon stat-icon-blue neu-pressed">
                   <IconRows size={22} />
                 </div>
                 <div className="stat-content">
-                  <span className="bento-stat-label">Total Rows</span>
-                  <span className="bento-stat-value">
+                  <span className="stat-label">Total Rows</span>
+                  <span className="stat-value">
                     {dataset.profile.total_rows.toLocaleString()}
                   </span>
-                  <span className="bento-stat-hint">Ingested records</span>
+                  <span className="stat-hint">Ingested records</span>
                 </div>
               </div>
 
-              <div className="bento-stat-card">
-                <div className="stat-icon-wrapper stat-icon-indigo">
+              <div className="stat-card stat-card-cols neu-card">
+                <div className="stat-icon stat-icon-indigo neu-pressed">
                   <IconColumns size={22} />
                 </div>
                 <div className="stat-content">
-                  <span className="bento-stat-label">Total Columns</span>
-                  <span className="bento-stat-value">{dataset.profile.total_columns}</span>
-                  <span className="bento-stat-hint">Structured schema fields</span>
+                  <span className="stat-label">Total Columns</span>
+                  <span className="stat-value">{dataset.profile.total_columns}</span>
+                  <span className="stat-hint">Structured schema fields</span>
                 </div>
               </div>
 
-              <div className="bento-stat-card">
-                <div className="stat-icon-wrapper stat-icon-amber">
+              <div className="stat-card stat-card-nulls neu-card">
+                <div className="stat-icon stat-icon-amber neu-pressed">
                   <IconTable size={22} />
                 </div>
                 <div className="stat-content">
-                  <span className="bento-stat-label">Missing Values</span>
-                  <span className="bento-stat-value">
+                  <span className="stat-label">Missing Values</span>
+                  <span className="stat-value">
                     {totalNulls.toLocaleString()}
                   </span>
-                  <span className="bento-stat-hint">{nullPercentage}% of total cells</span>
+                  <span className="stat-hint">{nullPercentage}% of total cells</span>
                 </div>
               </div>
 
-              <div className="bento-stat-card">
-                <div className="stat-icon-wrapper stat-icon-slate">
+              <div className="stat-card stat-card-dups neu-card">
+                <div className="stat-icon stat-icon-slate neu-pressed">
                   <IconCopy size={22} />
                 </div>
                 <div className="stat-content">
-                  <span className="bento-stat-label">Duplicates</span>
-                  <span className="bento-stat-value">{dataset.profile.duplicate_row_count}</span>
-                  <span className="bento-stat-hint">Identical record rows</span>
+                  <span className="stat-label">Duplicates</span>
+                  <span className="stat-value">{dataset.profile.duplicate_row_count}</span>
+                  <span className="stat-hint">Identical record rows</span>
                 </div>
               </div>
-            </section>
+            </div>
 
             {/* 2. Bento Dataset Explorer (Preview & Profiles) */}
-            <section className="bento-card">
-              <div className="bento-card-header">
-                <h2 className="bento-card-title">
+            <div className="explorer-card neu-card">
+              <div className="explorer-header">
+                <h2 className="explorer-title">
                   <IconTable size={18} /> Dataset Explorer
                 </h2>
-                <div className="bento-tabs">
+                <div className="tabs">
                   <button
-                    className={`bento-tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
+                    className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
                     onClick={() => setActiveTab('preview')}
                   >
                     Data Preview <span className="tab-badge">5 rows</span>
                   </button>
                   <button
-                    className={`bento-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
+                    className={`tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
                     onClick={() => setActiveTab('summary')}
                   >
                     Column Profiles <span className="tab-badge">{dataset.profile.total_columns}</span>
@@ -769,8 +697,8 @@ export default function App() {
               </div>
 
               {activeTab === 'preview' && (
-                <div className="table-responsive">
-                  <table className="bento-table">
+                <div className="table-wrapper">
+                  <table className="data-table">
                     <thead>
                       <tr>
                         {dataset.column_names.map((col) => (
@@ -798,8 +726,8 @@ export default function App() {
               )}
 
               {activeTab === 'summary' && (
-                <div className="table-responsive">
-                  <table className="bento-table">
+                <div className="table-wrapper">
+                  <table className="data-table">
                     <thead>
                       <tr>
                         <th>Column</th>
@@ -816,7 +744,7 @@ export default function App() {
                           <td><span className="type-pill">{col.column_type}</span></td>
                           <td>{col.null_count} ({col.null_percentage}%)</td>
                           <td>{col.unique_count.toLocaleString()}</td>
-                          <td className="stats-detail-text">
+                          <td className="stats-detail">
                             {col.numeric_stats && (
                               <span>
                                 min: {col.numeric_stats.min} &bull; max: {col.numeric_stats.max} &bull; mean: {col.numeric_stats.mean.toFixed(2)} &bull; median: {col.numeric_stats.median}
@@ -839,15 +767,15 @@ export default function App() {
                   </table>
                 </div>
               )}
-            </section>
+            </div>
 
             {/* 3. Ask Question Console */}
-            <section className="bento-card query-card">
-              <div className="bento-card-header">
-                <h2 className="bento-card-title">
+            <div className="query-card neu-card">
+              <div className="query-header">
+                <h2 className="query-title">
                   <IconSparkles size={18} /> Ask Your Data in Natural Language
                 </h2>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <span className="query-subtitle">
                   LangGraph Agent &bull; SQLite Engine
                 </span>
               </div>
@@ -868,7 +796,7 @@ export default function App() {
                 </div>
                 <button
                   type="submit"
-                  className="btn-primary"
+                  className="btn btn-primary"
                   disabled={asking || !question.trim()}
                 >
                   {asking ? (
@@ -885,7 +813,7 @@ export default function App() {
 
               {/* Dynamic Sample Question Chips */}
               {samplePrompts.length > 0 && (
-                <div className="prompt-suggestions">
+                <div className="suggestions">
                   <span className="suggestions-label">Suggestions:</span>
                   {samplePrompts.map((p, idx) => (
                     <button
@@ -903,7 +831,7 @@ export default function App() {
 
               {/* Progress & Error Feedback */}
               {asking && (
-                <div className="bento-alert bento-alert-info">
+                <div className="alert alert-info">
                   <span className="spinner"></span>
                   <div>
                     <strong>Query in progress:</strong> LangGraph is verifying schema columns, generating read-only SQLite syntax, and fetching execution rows...
@@ -912,33 +840,31 @@ export default function App() {
               )}
 
               {askError && (
-                <div className="bento-alert bento-alert-error">
+                <div className="alert alert-error">
                   <IconAlertTriangle size={18} />
                   <div>
                     <strong>Query error:</strong> {askError}
                   </div>
                 </div>
               )}
-            </section>
+            </div>
 
             {/* 4. Results Workspace */}
             {answer && !answer.answerable && (
-              <div className="bento-card">
-                <div className="bento-alert bento-alert-warning" style={{ margin: 0 }}>
-                  <IconAlertTriangle size={20} />
-                  <div>
-                    <strong style={{ display: 'block', marginBottom: '4px' }}>Cannot Answer Question with Available Columns</strong>
-                    {answer.explanation || answer.error}
-                  </div>
+              <div className="alert alert-warning">
+                <IconAlertTriangle size={20} />
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Cannot Answer Question with Available Columns</strong>
+                  {answer.explanation || answer.error}
                 </div>
               </div>
             )}
 
             {answer && answer.answerable && (
-              <section className="bento-card results-workspace">
+              <div className="results-workspace">
                 {/* A. AI Insight */}
                 {answer.insight && (
-                  <div className="bento-insight-card">
+                  <div className="insight-card neu-card">
                     <div className="insight-header">
                       <span className="insight-badge">
                         <IconSparkles size={12} /> AI Insight
@@ -949,20 +875,26 @@ export default function App() {
                   </div>
                 )}
 
-                {/* B. Executed SQL Accordion */}
-                <div className="bento-sql-box">
-                  <div className="bento-sql-header">
+                {/* B. SQL and Statement Type Badge */}
+                <div className="sql-box neu-card">
+                  <div className="sql-header">
                     <div
                       className="sql-header-left"
                       onClick={() => setShowSql(!showSql)}
                     >
                       <IconCode size={16} />
-                      <span>Executed SQL Query</span>
-                      <span className="sql-tag-read">READ-ONLY SELECT</span>
+                      <span>Generated SQL Statement</span>
+                      {answer.statement_type && (
+                        <span className={`sql-tag ${answer.statement_type === 'SELECT' ? 'sql-tag-select' : 'sql-tag-preview'}`}>
+                          {answer.intent === 'SQL_GENERATION' && answer.statement_type !== 'SELECT'
+                            ? `${answer.statement_type} — PREVIEW ONLY`
+                            : answer.statement_type}
+                        </span>
+                      )}
                       {answer.correction_attempted && (
                         <span className="sql-tag-retry">Auto-corrected (1 retry)</span>
                       )}
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         {showSql ? '▲ collapse' : '▼ expand'}
                       </span>
                     </div>
@@ -985,18 +917,28 @@ export default function App() {
                     </div>
                   </div>
                   {showSql && (
-                    <pre className="bento-sql-code">
+                    <pre className="sql-code">
                       <code>{answer.generated_sql}</code>
                     </pre>
                   )}
                 </div>
 
+                {/* Warning / Preview Alert for Modifying Statements */}
+                {answer.preview?.warning && (
+                  <div className={`alert ${answer.preview.is_destructive ? 'alert-error' : 'alert-warning'}`}>
+                    <IconAlertTriangle size={18} />
+                    <div>
+                      <strong>{answer.preview.is_destructive ? 'Destructive Operation Notice' : 'Notice'}:</strong> {answer.preview.warning}
+                    </div>
+                  </div>
+                )}
+
                 {/* C. Optional Chart */}
                 {chartConfig && (
-                  <div className="bento-chart-card">
-                    <div className="results-header-bar">
-                      <h3 className="bento-card-title">{chartConfig.chartTitle}</h3>
-                      <span className="results-count-badge">
+                  <div className="chart-card neu-card">
+                    <div className="chart-header">
+                      <h3 className="chart-title">{chartConfig.chartTitle}</h3>
+                      <span className="chart-badge">
                         {chartConfig.type === 'grouped' ? 'Grouped Bar Chart' : chartConfig.type === 'multi-series' ? 'Multi-Series Bar Chart' : 'Bar Chart'}
                       </span>
                     </div>
@@ -1007,27 +949,27 @@ export default function App() {
                           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                           layout="vertical"
                         >
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#263449' : '#e2e8f0'} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} />
                           <XAxis
                             type="number"
                             tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }}
                             tickFormatter={val => val.toLocaleString()}
-                            stroke={isDark ? '#263449' : '#e2e8f0'}
+                            stroke={isDark ? '#1e293b' : '#e2e8f0'}
                           />
                           <YAxis
                             type="category"
                             dataKey={chartConfig.xKey}
                             tick={{ fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' }}
-                            stroke={isDark ? '#263449' : '#e2e8f0'}
+                            stroke={isDark ? '#1e293b' : '#e2e8f0'}
                             width={120}
                             interval={0}
                           />
                           <Tooltip
                             contentStyle={{
                               borderRadius: '8px',
-                              border: `1px solid ${isDark ? '#263449' : '#e2e8f0'}`,
+                              border: `1px solid ${isDark ? '#1e293b' : '#e2e8f0'}`,
                               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
-                              backgroundColor: isDark ? '#151e30' : '#ffffff',
+                              backgroundColor: isDark ? '#0f172a' : '#ffffff',
                               color: isDark ? '#f8fafc' : '#0f172a'
                             }}
                             formatter={(value, name) => [value.toLocaleString(), name]}
@@ -1076,24 +1018,44 @@ export default function App() {
                   </div>
                 )}
 
-                {/* D. Query Results Table */}
-                <div className="bento-table-container">
-                  <div className="results-header-bar">
-                    <h3 className="bento-card-title">
-                      <IconTable size={16} /> Query Results
+                {/* D. Query Results / Preview Table */}
+                <div className="results-card neu-card">
+                  <div className="results-header">
+                    <h3 className="results-title">
+                      <IconTable size={16} /> {answer.statement_type === 'SELECT' ? 'Query Results' : 'Non-Destructive Statement Preview'}
                     </h3>
-                    <span className="results-count-badge">
-                      {answer.row_count} {answer.row_count === 1 ? 'row' : 'rows'} returned
+                    <span className="results-count">
+                      {answer.statement_type === 'SELECT'
+                        ? `${answer.row_count} ${answer.row_count === 1 ? 'row' : 'rows'} returned`
+                        : answer.preview?.preview_type === 'COLUMN_DROP_PREVIEW'
+                          ? `Preview only — not executed (Column '${answer.preview?.target_column}' removed)`
+                          : `Preview only — not executed (${answer.row_count || 0} rows)`}
                     </span>
                   </div>
 
+                  {answer.preview?.preview_type === 'COLUMN_DROP_PREVIEW' && (
+                    <div className="preview-notice">
+                      <div className="preview-notice-title">
+                        Schema Impact Preview
+                      </div>
+                      <div>
+                        Target Column: <code>{answer.preview?.target_column}</code> (targeted for removal)
+                      </div>
+                      <div style={{ marginTop: '4px' }}>
+                        Remaining Columns ({answer.preview?.remaining_columns?.length || 0}): <code>{answer.preview?.remaining_columns?.join(', ')}</code>
+                      </div>
+                    </div>
+                  )}
+
                   {answer.rows.length === 0 ? (
-                    <div className="empty-results-box">
-                      No matching records were found in the dataset for this query.
+                    <div className="empty-results">
+                      {answer.preview?.preview_type === 'COLUMN_DROP_PREVIEW'
+                        ? `Schema change preview: Column "${answer.preview?.target_column}" would be dropped from the dataset.`
+                        : 'No matching records were found in the dataset for this query.'}
                     </div>
                   ) : (
-                    <div className="table-responsive">
-                      <table className="bento-table">
+                    <div className="table-wrapper">
+                      <table className="data-table">
                         <thead>
                           <tr>
                             {answer.columns.map((col) => (
@@ -1123,7 +1085,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </section>
+              </div>
             )}
           </>
         )}

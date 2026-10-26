@@ -93,3 +93,8 @@ class AskResponse(BaseModel):
     explanation: Optional[str] = None
     insight: Optional[str] = None
     error: Optional[str] = None
+    intent: str = "DATA_ANALYSIS"
+    statement_type: str = "SELECT"
+    preview: Optional[Dict[str, Any]] = None
+    execution_time_ms: float = 0.0
+    llm_calls_count: int = 0
