@@ -8,6 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from .db import db_manager, validate_sql, validate_sql_against_schema, validate_modifying_sql
 from .schemas import AskResponse
+import time
 
 # Load environment variables from .env if present
 load_dotenv()
@@ -333,7 +334,20 @@ def create_sql_workflow(llm: Any):
         else:
             prompt = f"SELECT * FROM {table_name} LIMIT 10"
 
-        response = llm.invoke([SystemMessage(content=f"You generate valid SQLite SQL statements."), HumanMessage(content=prompt)])
+        #response = llm.invoke([SystemMessage(content=f"You generate valid SQLite SQL statements."), HumanMessage(content=prompt)])
+        start = time.perf_counter()
+        print("[TIMING] SQL generation started")
+
+        response = llm.invoke([
+        SystemMessage(content="You generate valid SQLite SQL statements."),
+        HumanMessage(content=prompt)
+        ])
+
+        print(
+        f"[TIMING] SQL generation finished in "
+        f"{time.perf_counter() - start:.2f}s"
+        )
+
         raw_text = extract_text_from_response(response)
         sql = clean_sql(raw_text)
         return {"generated_sql": sql}
@@ -423,10 +437,24 @@ def create_sql_workflow(llm: Any):
                         insight_llm = llm.bind(max_output_tokens=150)
                     except Exception:
                         insight_llm = llm
+                #response = insight_llm.invoke([
+                    #SystemMessage(content="You are a data analyst who provides concise, accurate insights based strictly on query results."),
+                    #HumanMessage(content=prompt)
+                #])
+                start = time.perf_counter()
+                print("[TIMING] Insight generation started")
+
                 response = insight_llm.invoke([
-                    SystemMessage(content="You are a data analyst who provides concise, accurate insights based strictly on query results."),
-                    HumanMessage(content=prompt)
+                SystemMessage(
+                content="You are a data analyst who provides concise, accurate insights based strictly on query results."
+                ),
+                HumanMessage(content=prompt)
                 ])
+
+                print(
+                f"[TIMING] Insight generation finished in "
+                f"{time.perf_counter() - start:.2f}s"
+                )
                 raw_text = extract_text_from_response(response)
                 return {"insight": raw_text.strip()}
             except Exception:

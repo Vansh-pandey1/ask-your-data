@@ -162,6 +162,39 @@ function IconMonitor({ size = 16 }) {
   );
 }
 
+// Helper to safely parse API responses by reading the body only once
+async function parseResponseSafe(res, fallbackMessage = 'Request failed') {
+  const rawText = await res.text();
+  let data = null;
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    data = null;
+  }
+
+  if (res.ok) {
+    if (data !== null) return data;
+    throw new Error('Invalid response received from server.');
+  }
+
+  // Not ok - extract structured detail or clean text without JSON parsing crashes
+  if (data && typeof data === 'object') {
+    const message = data.detail || data.error || data.message;
+    if (message) throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+
+  if (rawText && rawText.trim()) {
+    const trimmed = rawText.trim();
+    if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+      throw new Error(`Server returned error ${res.status}: ${res.statusText || 'Unexpected response'}`);
+    }
+    const cleanText = trimmed.length > 300 ? `${trimmed.slice(0, 300)}...` : trimmed;
+    throw new Error(cleanText);
+  }
+
+  throw new Error(`${fallbackMessage} (${res.status}: ${res.statusText || 'Unknown error'})`);
+}
+
 export default function App() {
   const [dataset, setDataset] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -249,11 +282,7 @@ export default function App() {
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || 'Upload failed');
-      }
-
+      const data = await parseResponseSafe(res, 'Upload failed');
       setDataset(data);
       setActiveTab('preview');
     } catch (err) {
@@ -280,10 +309,7 @@ export default function App() {
         body: JSON.stringify({ question: question.trim(), row_limit: 100 }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || 'Failed to answer question');
-      }
+      const data = await parseResponseSafe(res, 'Failed to answer question');
 
       if (data.error && data.answerable !== false) {
         setAskError(data.error);
