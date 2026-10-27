@@ -274,7 +274,7 @@ export default function App() {
     setAnswer(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/upload`, {
+      const res = await fetch(`${API_BASE_URL}/api/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question.trim(), row_limit: 100 }),
