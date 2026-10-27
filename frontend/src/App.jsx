@@ -244,7 +244,7 @@ export default function App() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ask`, {
+      const res = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -274,7 +274,7 @@ export default function App() {
     setAnswer(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ask`, {
+      const res = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question.trim(), row_limit: 100 }),
